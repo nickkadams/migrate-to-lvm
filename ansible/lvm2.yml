@@ -41,7 +41,7 @@
         pvs: "{{ new_disk }}2"
         #pesize: 32 # 128K
 
-    - name: Create logical volume swap of "{{ swap_size }}"
+    - name: Create logical volume swap of {{ swap_size }}
       lvol:
         vg: "{{ vg_name }}"
         lv: swap
@@ -83,7 +83,7 @@
         lv: root
         size: "{{ root_size }}"
 
-    - name: Create "{{ os_fstype }}" filesystem on "{{ new_disk }}1"
+    - name: Create {{ os_fstype }} filesystem on {{ new_disk }}1
       filesystem:
         fstype: "{{ os_fstype }}"
         dev: "{{ new_disk }}1"
@@ -95,37 +95,37 @@
         dev: "/dev/{{ vg_name }}/swap"
         #force: yes
 
-    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/var"
+    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/var
       filesystem:
         fstype: "{{ os_fstype }}"
         dev: "/dev/{{ vg_name }}/var"
         #force: yes
 
-    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/log"
+    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/log
       filesystem:
         fstype: "{{ os_fstype }}"
         dev: "/dev/{{ vg_name }}/log"
         #force: yes
 
-    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/audit"
+    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/audit
       filesystem:
         fstype: "{{ os_fstype }}"
         dev: "/dev/{{ vg_name }}/audit"
         #force: yes
 
-    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/home"
+    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/home
       filesystem:
         fstype: "{{ os_fstype }}"
         dev: "/dev/{{ vg_name }}/home"
         #force: yes
 
-    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/tmp"
+    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/tmp
       filesystem:
         fstype: "{{ os_fstype }}"
         dev: "/dev/{{ vg_name }}/tmp"
         #force: yes
 
-    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/root"
+    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/root
       filesystem:
         fstype: "{{ os_fstype }}"
         dev: "/dev/{{ vg_name }}/root"

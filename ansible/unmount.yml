@@ -28,7 +28,7 @@
     with_items:
       - '/etc/fstab.fake'
       - '/etc/fstab.new'
-      - '/newroot'
       - '/newroot/newroot'
-      - '/newroot/oldroot'      
+      - '/newroot/oldroot'       
+      - '/newroot'
       - '/oldroot'

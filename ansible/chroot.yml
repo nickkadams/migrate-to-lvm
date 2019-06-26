@@ -4,8 +4,8 @@
   become_user: root
   become: yes
   gather_facts: yes
-  vars_files:
-    - "vars/main.yml"
+  # vars_files:
+  #   - "vars/main.yml"
 
   tasks:
     - name: Update grub for Debian family
