@@ -283,24 +283,24 @@
         - ansible_os_family == "RedHat"
 
     - name: Rsync /boot to /newroot/boot/
-        synchronize:
-          src: /boot
-          dest: /newroot
-          archive: yes
-          rsync_opts:
-            - "--one-file-system"
+      synchronize:
+        src: /boot
+        dest: /newroot
+        archive: yes
+        rsync_opts:
+          - "--one-file-system"
       when:
         - ansible_os_family == "Debian"
 
     - name: Rsync /boot to /newroot
-        synchronize:
-          src: /boot
-          dest: /newroot
-          archive: yes
-          rsync_opts:
-            - "-A"
-            - "-X"
-            - "--one-file-system"
+      synchronize:
+        src: /boot
+        dest: /newroot
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+          - "--one-file-system"
       when:
         - ansible_os_family == "RedHat"
 
