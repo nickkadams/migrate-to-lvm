@@ -1,5 +1,5 @@
 ---
-new_disk: /dev/sdb
+#new_disk: /dev/sdb
 vg_name: system
 swap_size: 2g
 var_size: 10g

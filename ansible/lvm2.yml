@@ -255,13 +255,13 @@
 
     - name: Rsync /oldroot to /newroot for Debian family
       synchronize:
-        src: /oldroot
-        dest: /newroot
+        src: /oldroot/
+        dest: /newroot/
         archive: yes
         rsync_opts:
           - "--exclude='swapfile'"
           - "--exclude='/etc/fstab.*'"
-          - "--one-file-system"
+          #- "--one-file-system"
           # - "--exclude='/newroot'"
           # - "--exclude='/oldroot'"
       when:
@@ -269,40 +269,40 @@
 
     - name: Rsync /oldroot to /newroot for RedHat family
       synchronize:
-        src: /oldroot
-        dest: /newroot
+        src: /oldroot/
+        dest: /newroot/
         archive: yes
         rsync_opts:
           - "-A"
           - "-X"
           - "--exclude='/etc/fstab.*'"
-          - "--one-file-system"
+          #- "--one-file-system"
           # - "--exclude='/newroot'"
           # - "--exclude='/oldroot'"
       when:
         - ansible_os_family == "RedHat"
 
-  # - name: Rsync /boot to /newroot/boot/
-  #   synchronize:
-  #     src: /boot
-  #     dest: /newroot
-  #     archive: yes
-  #     rsync_opts:
-  #       - "--one-file-system"
-  #   when:
-  #     - ansible_os_family == "Debian"
-  #
-  # - name: Rsync /boot to /newroot
-  #   synchronize:
-  #     src: /boot
-  #     dest: /newroot
-  #     archive: yes
-  #     rsync_opts:
-  #       - "-A"
-  #       - "-X"
-  #       - "--one-file-system"
-  #   when:
-  #     - ansible_os_family == "RedHat"
+    - name: Rsync /boot to /newroot/boot/
+        synchronize:
+          src: /boot
+          dest: /newroot
+          archive: yes
+          rsync_opts:
+            - "--one-file-system"
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Rsync /boot to /newroot
+        synchronize:
+          src: /boot
+          dest: /newroot
+          archive: yes
+          rsync_opts:
+            - "-A"
+            - "-X"
+            - "--one-file-system"
+      when:
+        - ansible_os_family == "RedHat"
 
     - name: Update new /etc/fstab pass1
       replace:

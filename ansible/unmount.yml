@@ -29,4 +29,6 @@
       - '/etc/fstab.fake'
       - '/etc/fstab.new'
       - '/newroot'
+      - '/newroot/newroot'
+      - '/newroot/oldroot'      
       - '/oldroot'
