@@ -1,0 +1,371 @@
+---
+- hosts: localhost
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - "vars/main.yml"
+    - "vars/{{ ansible_os_family }}.yml"
+
+  # handlers:
+  #   - name: restart jcagent
+  #     service: name=jcagent state=restarted
+
+  tasks:
+    - name: install dependencies
+      package:
+        state: latest
+        name:
+          - lvm2
+          - rsync
+
+    - name: Create a new primary partition
+      parted:
+        device: "{{ new_disk }}"
+        number: 1
+        flags: [ boot ]
+        state: present
+        part_end: 512MB
+
+    - name: Create a new primary partition
+      parted:
+        device: "{{ new_disk }}"
+        number: 2
+        flags: [ lvm ]
+        state: present
+        part_start: 513MB
+        part_end: "100%"
+
+    - name: Create a volume group on top of {{ new_disk }}2
+      lvg:
+        vg: "{{ vg_name }}"
+        pvs: "{{ new_disk }}2"
+        #pesize: 32 # 128K
+
+    - name: Create logical volume swap of "{{ swap_size }}"
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: swap
+        size: "{{ swap_size }}"
+
+    - name: Create logical volume var of {{ var_size }}
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: var
+        size: "{{ var_size }}"
+
+    - name: Create logical volume log of {{ log_size }}
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: log
+        size: "{{ log_size }}"
+
+    - name: Create logical volume audit of {{ audit_size }}
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: audit
+        size: "{{ audit_size }}"
+
+    - name: Create logical volume home of {{ home_size }}
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: home
+        size: "{{ home_size }}"
+
+    - name: Create logical volume tmp of {{ tmp_size }}
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: tmp
+        size: "{{ tmp_size }}"
+
+    - name: Create logical volume root of {{ root_size }}
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: root
+        size: "{{ root_size }}"
+
+    - name: Create "{{ os_fstype }}" filesystem on "{{ new_disk }}1"
+      filesystem:
+        fstype: "{{ os_fstype }}"
+        dev: "{{ new_disk }}1"
+        #force: yes
+
+    - name: Create swap filesystem on "/dev/{{ vg_name }}/swap"
+      filesystem:
+        fstype: swap
+        dev: "/dev/{{ vg_name }}/swap"
+        #force: yes
+
+    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/var"
+      filesystem:
+        fstype: "{{ os_fstype }}"
+        dev: "/dev/{{ vg_name }}/var"
+        #force: yes
+
+    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/log"
+      filesystem:
+        fstype: "{{ os_fstype }}"
+        dev: "/dev/{{ vg_name }}/log"
+        #force: yes
+
+    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/audit"
+      filesystem:
+        fstype: "{{ os_fstype }}"
+        dev: "/dev/{{ vg_name }}/audit"
+        #force: yes
+
+    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/home"
+      filesystem:
+        fstype: "{{ os_fstype }}"
+        dev: "/dev/{{ vg_name }}/home"
+        #force: yes
+
+    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/tmp"
+      filesystem:
+        fstype: "{{ os_fstype }}"
+        dev: "/dev/{{ vg_name }}/tmp"
+        #force: yes
+
+    - name: Create "{{ os_fstype }}" filesystem on "/dev/{{ vg_name }}/root"
+      filesystem:
+        fstype: "{{ os_fstype }}"
+        dev: "/dev/{{ vg_name }}/root"
+        #force: yes
+
+    - name: Create newroot dir
+      file:
+        path: /newroot
+        state: directory
+        mode: 0755
+      register: _chroot_dir
+
+    - name: Remove any temp fstab files
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - '/etc/fstab.fake'
+        - '/etc/fstab.new'
+
+    - name: Mount newroot dir
+      mount:
+        path: /newroot
+        src: "/dev/{{ vg_name }}/root"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create boot dir
+      file:
+        path: /newroot/boot
+        state: directory
+        mode: 0755
+
+    - name: Mount boot dir
+      mount:
+        path: /newroot/boot
+        src: "{{ new_disk }}1"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create var dir
+      file:
+        path: /newroot/var
+        state: directory
+        mode: 0755
+
+    - name: Mount var dir
+      mount:
+        path: /newroot/var
+        src: "/dev/{{ vg_name }}/var"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create log dir
+      file:
+        path: /newroot/var/log
+        state: directory
+        mode: 0755
+
+    - name: Mount log dir
+      mount:
+        path: /newroot/var/log
+        src: "/dev/{{ vg_name }}/log"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create audit dir
+      file:
+        path: /newroot/var/log/audit
+        state: directory
+        mode: 0755
+
+    - name: Mount audit dir
+      mount:
+        path: /newroot/var/log/audit
+        src: "/dev/{{ vg_name }}/audit"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create home dir
+      file:
+        path: /newroot/home
+        state: directory
+        mode: 0755
+
+    - name: Mount home dir
+      mount:
+        path: /newroot/home
+        src: "/dev/{{ vg_name }}/home"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create tmp dir
+      file:
+        path: /newroot/tmp
+        state: directory
+        mode: 0755
+
+    - name: Mount tmp dir
+      mount:
+        path: /newroot/tmp
+        src: "/dev/{{ vg_name }}/tmp"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create oldroot dir
+      file:
+        path: /oldroot
+        state: directory
+        mode: 0755
+
+    - name: Mount oldroot
+      mount:
+        path: /oldroot
+        src: /
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
+    - name: Rsync /oldroot to /newroot for Debian family
+      synchronize:
+        src: /oldroot
+        dest: /newroot
+        archive: yes
+        rsync_opts:
+          - "--exclude='swapfile'"
+          - "--exclude='/etc/fstab.*'"
+          - "--one-file-system"
+          # - "--exclude='/newroot'"
+          # - "--exclude='/oldroot'"
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Rsync /oldroot to /newroot for RedHat family
+      synchronize:
+        src: /oldroot
+        dest: /newroot
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+          - "--exclude='/etc/fstab.*'"
+          - "--one-file-system"
+          # - "--exclude='/newroot'"
+          # - "--exclude='/oldroot'"
+      when:
+        - ansible_os_family == "RedHat"
+
+  # - name: Rsync /boot to /newroot/boot/
+  #   synchronize:
+  #     src: /boot
+  #     dest: /newroot
+  #     archive: yes
+  #     rsync_opts:
+  #       - "--one-file-system"
+  #   when:
+  #     - ansible_os_family == "Debian"
+  #
+  # - name: Rsync /boot to /newroot
+  #   synchronize:
+  #     src: /boot
+  #     dest: /newroot
+  #     archive: yes
+  #     rsync_opts:
+  #       - "-A"
+  #       - "-X"
+  #       - "--one-file-system"
+  #   when:
+  #     - ansible_os_family == "RedHat"
+
+    - name: Update new /etc/fstab pass1
+      replace:
+        path: "/etc/fstab.new"
+        regexp: "UUID= /newroot/boot xfs defaults 0 0"
+
+    - name: Update new /etc/fstab pass2
+      mount:
+        path: /newroot/boot
+        src: "UUID={{ ansible_mounts | json_query('[?mount == `/newroot/boot`] | [0].uuid') }}"
+        fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: present
+
+    - name: Update new /etc/fstab pass3
+      replace:
+        path: "/etc/fstab.new"
+        regexp: "newroot"
+
+    - name: Update new /etc/fstab pass4
+      replace:
+        path: "/etc/fstab.new"
+        regexp: "//"
+        replace: "/"
+
+    - name: Copy new /etc/fstab to newroot
+      copy:
+        src: /etc/fstab.new
+        dest: /newroot/etc/fstab
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Touch .autorelabel for SELinux
+      file:
+        path: /newroot/.autorelabel
+        state: touch
+      when:
+        - ansible_os_family == "RedHat"
+
+    - name: Mount dev on newroot
+      mount:
+        path: /newroot/dev
+        src: /dev
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
+    - name: Mount sys on newroot
+      mount:
+        path: /newroot/sys
+        src: /sys
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
+    - name: Mount proc on newroot
+      mount:
+        path: /newroot/proc
+        src: /proc
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted

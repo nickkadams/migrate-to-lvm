@@ -1,0 +1,10 @@
+---
+new_disk: /dev/sdb
+vg_name: system
+swap_size: 2g
+var_size: 10g
+log_size: 5g
+audit_size: 2g
+home_size: 5g
+tmp_size: 2g
+root_size: "+100%FREE"
