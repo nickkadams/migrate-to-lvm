@@ -8,15 +8,24 @@
   #   - "vars/main.yml"
 
   tasks:
+    # - name: Update grub parameters for Debian family
+    #   lineinfile: regexp="^GRUB_CMDLINE_LINUX_DEFAULT"
+    #     line="GRUB_CMDLINE_LINUX_DEFAULT=\"quiet nosplash acpi=force pcie_aspm=force nmi_watchdog=0\""
+    #     dest=/etc/default/grub
+    #     state=present
+    #   register: kernel_parameters
+
     - name: Update grub for Debian family
       command: grub-mkconfig -o /boot/grub/grub.cfg
       when:
         - ansible_os_family == "Debian"
+        #- kernel_parameters|changed
 
     - name: Update grub for RedHat family
       command: grub2-mkconfig -o /boot/grub2/grub.cfg
       when:
         - ansible_os_family == "RedHat"
+        #- kernel_parameters|changed
 
     - name: Update initramfs for Debian family
       command: update-initramfs -u

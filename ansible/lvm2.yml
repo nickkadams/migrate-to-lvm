@@ -11,7 +11,7 @@
   #     service: name=jcagent state=restarted
 
   tasks:
-    - name: install dependencies
+    - name: Install dependencies
       package:
         state: latest
         name:
