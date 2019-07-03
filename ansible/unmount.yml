@@ -4,6 +4,13 @@
   gather_facts: yes
 
   tasks:
+  - name: Remove ansible code
+    file:
+      path: "{{ item }}"
+      state: absent
+    with_items:
+      - '/newroot/home/ansible/ansible'
+
   - name: Umount all temporary mounts
     mount:
       path: "{{ item }}"
@@ -27,8 +34,6 @@
     with_items:
       - '/etc/fstab.fake'
       - '/etc/fstab.new'
-      - '/newroot/home/ansible/var'
-      - '/newroot/home/ansible/*.yml'
       - '/newroot/newroot'
       - '/newroot/oldroot'
       - '/newroot'

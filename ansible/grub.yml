@@ -1,5 +1,5 @@
 ---
-- hosts: local-chroot
+- hosts: chroot_instance
   connection: chroot
   user: root
 
@@ -13,7 +13,7 @@
 
     - name: Update grub for Debian family
       command: grub-mkconfig -o /boot/grub/grub.cfg
-      #command: grub-mkconfig -o /newroot/boot/grub/grub.cfg      
+      #command: grub-mkconfig -o /newroot/boot/grub/grub.cfg
       when:
         - ansible_os_family == "Debian"
 

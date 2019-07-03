@@ -1,2 +1,2 @@
-[local-chroot]
+[chroot_instance]
 /newroot
