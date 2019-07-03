@@ -18,7 +18,6 @@
       - '/newroot/var/log/audit'
       - '/newroot/var/log'
       - '/newroot/var'
-      - '/newroot/boot'
       - '/newroot'
 
   - name: Remove any temp files or directories
@@ -28,7 +27,9 @@
     with_items:
       - '/etc/fstab.fake'
       - '/etc/fstab.new'
+      - '/newroot/home/ansible/var'
+      - '/newroot/home/ansible/*.yml'
       - '/newroot/newroot'
-      - '/newroot/oldroot'       
+      - '/newroot/oldroot'
       - '/newroot'
       - '/oldroot'

@@ -1,7 +1,7 @@
 ---
 #new_disk: /dev/sdb
 vg_name: system
-swap_size: 2g
+swap_size: 1g
 var_size: 10g
 log_size: 5g
 audit_size: 2g

@@ -6,10 +6,6 @@
     - "vars/main.yml"
     - "vars/{{ ansible_os_family }}.yml"
 
-  # handlers:
-  #   - name: restart jcagent
-  #     service: name=jcagent state=restarted
-
   tasks:
     - name: Install dependencies
       package:
@@ -22,24 +18,15 @@
       parted:
         device: "{{ new_disk }}"
         number: 1
-        flags: [ boot ]
+        flags: [ boot,lvm ]
         state: present
-        part_end: 512MB
+        part_end: 100%
 
-    - name: Create a new primary partition
-      parted:
-        device: "{{ new_disk }}"
-        number: 2
-        flags: [ lvm ]
-        state: present
-        part_start: 513MB
-        part_end: "100%"
-
-    - name: Create a volume group on top of {{ new_disk }}2
+    - name: Create a volume group on top of {{ new_disk }}1
       lvg:
         vg: "{{ vg_name }}"
-        pvs: "{{ new_disk }}2"
-        #pesize: 32 # 128K
+        pvs: "{{ new_disk }}1"
+        pesize: "4" # 32 or 128K
 
     - name: Create logical volume swap of {{ swap_size }}
       lvol:
@@ -82,12 +69,6 @@
         vg: "{{ vg_name }}"
         lv: root
         size: "{{ root_size }}"
-
-    - name: Create {{ os_fstype }} filesystem on {{ new_disk }}1
-      filesystem:
-        fstype: "{{ os_fstype }}"
-        dev: "{{ new_disk }}1"
-        #force: yes
 
     - name: Create swap filesystem on "/dev/{{ vg_name }}/swap"
       filesystem:
@@ -150,20 +131,6 @@
       mount:
         path: /newroot
         src: "/dev/{{ vg_name }}/root"
-        fstype: "{{ os_fstype }}"
-        fstab: /etc/fstab.new
-        state: mounted
-
-    - name: Create boot dir
-      file:
-        path: /newroot/boot
-        state: directory
-        mode: 0755
-
-    - name: Mount boot dir
-      mount:
-        path: /newroot/boot
-        src: "{{ new_disk }}1"
         fstype: "{{ os_fstype }}"
         fstab: /etc/fstab.new
         state: mounted
@@ -238,6 +205,14 @@
         fstab: /etc/fstab.new
         state: mounted
 
+    - name: Add swap dir
+      mount:
+        path: swap
+        src: "/dev/{{ vg_name }}/swap"
+        fstype: swap
+        fstab: /etc/fstab.new
+        state: present
+
     - name: Create oldroot dir
       file:
         path: /oldroot
@@ -261,7 +236,7 @@
         rsync_opts:
           - "--exclude='swapfile'"
           - "--exclude='/etc/fstab.*'"
-          #- "--one-file-system"
+          - "--one-file-system"
           # - "--exclude='/newroot'"
           # - "--exclude='/oldroot'"
       when:
@@ -276,53 +251,18 @@
           - "-A"
           - "-X"
           - "--exclude='/etc/fstab.*'"
-          #- "--one-file-system"
+          - "--one-file-system"
           # - "--exclude='/newroot'"
           # - "--exclude='/oldroot'"
-      when:
-        - ansible_os_family == "RedHat"
-
-    - name: Rsync /boot to /newroot/boot/
-      synchronize:
-        src: /boot
-        dest: /newroot
-        archive: yes
-        rsync_opts:
-          - "--one-file-system"
-      when:
-        - ansible_os_family == "Debian"
-
-    - name: Rsync /boot to /newroot
-      synchronize:
-        src: /boot
-        dest: /newroot
-        archive: yes
-        rsync_opts:
-          - "-A"
-          - "-X"
-          - "--one-file-system"
       when:
         - ansible_os_family == "RedHat"
 
     - name: Update new /etc/fstab pass1
       replace:
         path: "/etc/fstab.new"
-        regexp: "UUID= /newroot/boot xfs defaults 0 0"
-
-    - name: Update new /etc/fstab pass2
-      mount:
-        path: /newroot/boot
-        src: "UUID={{ ansible_mounts | json_query('[?mount == `/newroot/boot`] | [0].uuid') }}"
-        fstype: "{{ os_fstype }}"
-        fstab: /etc/fstab.new
-        state: present
-
-    - name: Update new /etc/fstab pass3
-      replace:
-        path: "/etc/fstab.new"
         regexp: "newroot"
 
-    - name: Update new /etc/fstab pass4
+    - name: Update new /etc/fstab pass2
       replace:
         path: "/etc/fstab.new"
         regexp: "//"
