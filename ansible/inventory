@@ -1,2 +1,5 @@
+[localhost]
+127.0.0.1
+
 [chroot_instance]
 /newroot

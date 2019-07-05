@@ -1,5 +1,6 @@
 ---
 - hosts: localhost
+  connection: local
   become: yes
   gather_facts: yes
   vars_files:
@@ -14,18 +15,29 @@
           - lvm2
           - rsync
 
-    - name: Create a new primary partition
+    - name: Create a new boot partition
       parted:
         device: "{{ new_disk }}"
         number: 1
-        flags: [ boot,lvm ]
+        flags: [ boot ]
         state: present
+        part_type: primary
+        part_end: "{{ boot_size }}MB"
+
+    - name: Create a new root partition
+      parted:
+        device: "{{ new_disk }}"
+        number: 2
+        flags: [ lvm ]
+        state: present
+        part_type: primary
+        part_start: "{{ boot_size|int + 1 }}MB"
         part_end: 100%
 
-    - name: Create a volume group on top of {{ new_disk }}1
+    - name: Create {{ vg_name }} volume group on top of {{ new_disk }}2
       lvg:
         vg: "{{ vg_name }}"
-        pvs: "{{ new_disk }}1"
+        pvs: "{{ new_disk }}2"
         pesize: "4" # 32 or 128K
 
     - name: Create logical volume swap of {{ swap_size }}
@@ -33,6 +45,7 @@
         vg: "{{ vg_name }}"
         lv: swap
         size: "{{ swap_size }}"
+      when: create_swap
 
     - name: Create logical volume var of {{ var_size }}
       lvol:
@@ -70,46 +83,56 @@
         lv: root
         size: "{{ root_size }}"
 
-    - name: Create swap filesystem on "/dev/{{ vg_name }}/swap"
+    - name: Create ext4 filesystem on /boot
       filesystem:
-        fstype: swap
-        dev: "/dev/{{ vg_name }}/swap"
+        fstype: ext4
+        dev: "{{ new_disk }}1"
         #force: yes
 
-    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/var
+    # - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
+    #   filesystem:
+    #     fstype: swap
+    #     dev: "/dev/mapper/{{ vg_name }}-swap"
+    #     #force: yes
+    #   when: create_swap
+
+    - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
+      command: mkswap /dev/mapper/{{ vg_name }}-swap
+
+    - name: Create {{ os_fstype }} filesystem on /dev/mapper/{{ vg_name }}-var
       filesystem:
         fstype: "{{ os_fstype }}"
-        dev: "/dev/{{ vg_name }}/var"
+        dev: "/dev/mapper/{{ vg_name }}-var"
         #force: yes
 
-    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/log
+    - name: Create {{ os_fstype }} filesystem on /dev/mapper/{{ vg_name }}-log
       filesystem:
         fstype: "{{ os_fstype }}"
-        dev: "/dev/{{ vg_name }}/log"
+        dev: "/dev/mapper/{{ vg_name }}-log"
         #force: yes
 
-    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/audit
+    - name: Create {{ os_fstype }} filesystem on /dev/mapper/{{ vg_name }}-audit
       filesystem:
         fstype: "{{ os_fstype }}"
-        dev: "/dev/{{ vg_name }}/audit"
+        dev: "/dev/mapper/{{ vg_name }}-audit"
         #force: yes
 
-    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/home
+    - name: Create {{ os_fstype }} filesystem on /dev/mapper/{{ vg_name }}-home
       filesystem:
         fstype: "{{ os_fstype }}"
-        dev: "/dev/{{ vg_name }}/home"
+        dev: "/dev/mapper/{{ vg_name }}-home"
         #force: yes
 
-    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/tmp
+    - name: Create {{ os_fstype }} filesystem on /dev/mapper/{{ vg_name }}-tmp
       filesystem:
         fstype: "{{ os_fstype }}"
-        dev: "/dev/{{ vg_name }}/tmp"
+        dev: "/dev/mapper/{{ vg_name }}-tmp"
         #force: yes
 
-    - name: Create {{ os_fstype }} filesystem on /dev/{{ vg_name }}/root
+    - name: Create {{ os_fstype }} filesystem on /dev/mapper/{{ vg_name }}-root
       filesystem:
         fstype: "{{ os_fstype }}"
-        dev: "/dev/{{ vg_name }}/root"
+        dev: "/dev/mapper/{{ vg_name }}-root"
         #force: yes
 
     - name: Create newroot dir
@@ -117,7 +140,6 @@
         path: /newroot
         state: directory
         mode: 0755
-      register: _chroot_dir
 
     - name: Remove any temp fstab files
       file:
@@ -130,8 +152,28 @@
     - name: Mount newroot dir
       mount:
         path: /newroot
-        src: "/dev/{{ vg_name }}/root"
+        src: "/dev/mapper/{{ vg_name }}-root"
         fstype: "{{ os_fstype }}"
+        fstab: /etc/fstab.new
+        state: mounted
+
+    - name: Create boot dir
+      file:
+        path: /newroot/boot
+        state: directory
+        mode: 0755
+
+    - name: Find boot UUID
+      shell: blkid -o value -s UUID {{ new_disk }}1
+      register: found_uuid
+
+    - name: Mount boot dir
+      mount:
+        path: /newroot/boot
+        src: UUID={{ found_uuid.stdout_lines[0] }}
+        fstype: ext4
+        dump: 1
+        passno: 2
         fstab: /etc/fstab.new
         state: mounted
 
@@ -144,8 +186,9 @@
     - name: Mount var dir
       mount:
         path: /newroot/var
-        src: "/dev/{{ vg_name }}/var"
+        src: "/dev/mapper/{{ vg_name }}-var"
         fstype: "{{ os_fstype }}"
+        opts: nodev
         fstab: /etc/fstab.new
         state: mounted
 
@@ -158,8 +201,9 @@
     - name: Mount log dir
       mount:
         path: /newroot/var/log
-        src: "/dev/{{ vg_name }}/log"
+        src: "/dev/mapper/{{ vg_name }}-log"
         fstype: "{{ os_fstype }}"
+        opts: nodev
         fstab: /etc/fstab.new
         state: mounted
 
@@ -172,8 +216,9 @@
     - name: Mount audit dir
       mount:
         path: /newroot/var/log/audit
-        src: "/dev/{{ vg_name }}/audit"
+        src: "/dev/mapper/{{ vg_name }}-audit"
         fstype: "{{ os_fstype }}"
+        opts: nodev
         fstab: /etc/fstab.new
         state: mounted
 
@@ -186,8 +231,9 @@
     - name: Mount home dir
       mount:
         path: /newroot/home
-        src: "/dev/{{ vg_name }}/home"
+        src: "/dev/mapper/{{ vg_name }}-home"
         fstype: "{{ os_fstype }}"
+        opts: nodev
         fstab: /etc/fstab.new
         state: mounted
 
@@ -200,18 +246,20 @@
     - name: Mount tmp dir
       mount:
         path: /newroot/tmp
-        src: "/dev/{{ vg_name }}/tmp"
+        src: "/dev/mapper/{{ vg_name }}-tmp"
         fstype: "{{ os_fstype }}"
+        opts: nodev,noexec,nosuid
         fstab: /etc/fstab.new
         state: mounted
 
     - name: Add swap dir
       mount:
         path: swap
-        src: "/dev/{{ vg_name }}/swap"
+        src: "/dev/mapper/{{ vg_name }}-swap"
         fstype: swap
         fstab: /etc/fstab.new
         state: present
+      when: create_swap
 
     - name: Create oldroot dir
       file:
@@ -275,6 +323,16 @@
         owner: root
         group: root
         mode: '0644'
+
+    - name: Edit default grub for RedHat family
+      lineinfile:
+        state: present
+        dest: /newroot/etc/default/grub
+        backrefs: yes
+        regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
+        line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
+      when:
+        - ansible_os_family == "RedHat"
 
     - name: Touch .autorelabel for SELinux
       file:

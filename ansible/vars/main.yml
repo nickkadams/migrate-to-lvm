@@ -1,6 +1,8 @@
 ---
 #new_disk: /dev/sdb
-vg_name: system
+vg_name: rootvg
+boot_size: 512 # in MB
+create_swap: true
 swap_size: 1g
 var_size: 10g
 log_size: 5g

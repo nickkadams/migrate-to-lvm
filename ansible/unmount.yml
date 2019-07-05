@@ -1,5 +1,6 @@
 ---
 - hosts: localhost
+  connection: local
   become: yes
   gather_facts: yes
 
@@ -17,15 +18,17 @@
       state: unmounted
     with_items:
       - '/oldroot'
-      - '/newroot/dev'
-      - '/newroot/sys'
-      - '/newroot/proc'
+      - '/newroot/boot'
       - '/newroot/home'
       - '/newroot/tmp'
       - '/newroot/var/log/audit'
       - '/newroot/var/log'
       - '/newroot/var'
+      - '/newroot/proc'
+      - '/newroot/dev'      
+      - '/newroot/sys'
       - '/newroot'
+    ignore_errors: yes
 
   - name: Remove any temp files or directories
     file:
@@ -38,3 +41,4 @@
       - '/newroot/oldroot'
       - '/newroot'
       - '/oldroot'
+    ignore_errors: yes
