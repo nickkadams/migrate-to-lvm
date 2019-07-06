@@ -98,6 +98,7 @@
 
     - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
       command: mkswap /dev/mapper/{{ vg_name }}-swap
+      when: create_swap
 
     - name: Create {{ os_fstype }} filesystem on /dev/mapper/{{ vg_name }}-var
       filesystem:
