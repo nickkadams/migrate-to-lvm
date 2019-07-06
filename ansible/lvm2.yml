@@ -83,7 +83,7 @@
         lv: root
         size: "{{ root_size }}"
 
-    - name: Create ext4 filesystem on /boot
+    - name: Create ext4 filesystem on {{ new_disk }}1
       filesystem:
         fstype: ext4
         dev: "{{ new_disk }}1"
@@ -285,9 +285,8 @@
         rsync_opts:
           - "--exclude='swapfile'"
           - "--exclude='/etc/fstab.*'"
+          - "--exclude='/home/ansible/ansible'"
           - "--one-file-system"
-          # - "--exclude='/newroot'"
-          # - "--exclude='/oldroot'"
       when:
         - ansible_os_family == "Debian"
 
@@ -300,9 +299,8 @@
           - "-A"
           - "-X"
           - "--exclude='/etc/fstab.*'"
+          - "--exclude='/home/ansible/ansible'"
           - "--one-file-system"
-          # - "--exclude='/newroot'"
-          # - "--exclude='/oldroot'"
       when:
         - ansible_os_family == "RedHat"
 

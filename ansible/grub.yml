@@ -6,15 +6,8 @@
   tasks:
     - name: Update grub for Debian family
       command: grub-mkconfig -o /boot/grub/grub.cfg
-      #command: grub-mkconfig -o /newroot/boot/grub/grub.cfg
       when:
         - ansible_os_family == "Debian"
-
-    # - name: Update grub for RedHat family
-    #   #command: grubby --update-kernel=ALL --args=rd.lvm.lv=rootvg/root
-    #   command: "grubby --update-kernel=ALL --args=rd.lvm.lv={{ vg_name }}/root"
-    #   when:
-    #     - ansible_os_family == "RedHat"
 
     - name: Update grub for RedHat family
       command: grub2-mkconfig -o /boot/grub2/grub.cfg
@@ -27,28 +20,38 @@
         - ansible_os_family == "Debian"
 
     # - name: Find latest initramfs for RedHat family
-    #   shell: ls -1t /boot/initramfs-*.img | head -1
+    #   find:
+    #     paths: /boot
+    #     patterns: '*.img'
+    #     recurse: no
+    #     file_type: file
+    #     excludes: '*rescue*'
+    #   register: found_file
+    #   when:
+    #     - ansible_os_family == "RedHat"
+
+    # - name: Find latest initramfs for RedHat family
+    #   shell: ls -1t /boot/initramfs-3.*64.img | head -1
+    #   #shell: ls -1t /boot/initramfs-*.img | head -1
     #   register: found_file
     #   when:
     #     - ansible_os_family == "RedHat"
 
     - name: Update initramfs for RedHat family
-      command: dracut --hostonly --force --regenerate-all
-      #command: "dracut -f {{ found_file.stdout_lines[0] }}"
+      command: dracut -f -H --regenerate-all
+      #command: "dracut -f -H {{ found_file.stdout_lines[0] }}"
       when:
         - ansible_os_family == "RedHat"
 
     - name: Check grub for Debian family
       command: "grub-install --recheck {{ new_disk }}"
-      #command: "grub-install --root-directory=/newroot {{ new_disk }}"
       when:
         - ansible_os_family == "Debian"
 
     - name: Check grub for RedHat family
       command: "grub2-install --recheck {{ new_disk }}"
-      #command: "grub2-install --target=i386-pc --recheck {{ new_disk }}"
       when:
         - ansible_os_family == "RedHat"
 
-    # - name: Flush to disk
-    #   command: "sync"
+    - name: Flush to disk
+      command: "sync"
