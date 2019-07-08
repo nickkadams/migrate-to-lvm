@@ -1,2 +1,3 @@
 ---
-os_fstype: ext4
+boot_fs: ext4
+root_fs: ext4

@@ -9,6 +9,11 @@
       when:
         - ansible_os_family == "Debian"
 
+    - name: Unset kernelopts for RedHat 8 family
+      command: grub2-editenv - unset kernelopts
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
     - name: Update grub for RedHat family
       command: grub2-mkconfig -o /boot/grub2/grub.cfg
       when:

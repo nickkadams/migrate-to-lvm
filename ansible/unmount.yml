@@ -47,6 +47,6 @@
       - '/etc/fstab.new'
       # - '/newroot/newroot'
       # - '/newroot/oldroot'
-      - '/newroot'
-      - '/oldroot'
+      #- '/newroot'
+      #- '/oldroot'
     ignore_errors: yes
