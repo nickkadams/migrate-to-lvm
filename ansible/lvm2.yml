@@ -171,30 +171,27 @@
         state: directory
         mode: 0755
 
-    # - name: Find boot UUID
-    #   shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
-    #   register: found_uuid
-    #
-    # - name: Mount boot dir
-    #   mount:
-    #     path: /newroot/boot
-    #     src: UUID={{ found_uuid.stdout_lines[0] }}
-    #     fstype: "{{ boot_fs }}"
-    #     dump: 1
-    #     passno: 2
-    #     fstab: /etc/fstab.new
-    #     state: mounted
-
     - name: Mount boot dir
       mount:
         path: /newroot/boot
         src: "{{ new_disk }}{{ boot_part }}"
         fstype: "{{ boot_fs }}"
-        dump: 1
-        passno: 2
-        fstab: /etc/fstab.new
+        fstab: /etc/fstab.fake
         state: mounted
 
+    - name: Find boot UUID for fstab
+      shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
+      register: found_uuid
+
+    - name: Update boot in fstab
+      mount:
+        path: /newroot/boot
+        src: UUID={{ found_uuid.stdout_lines[0] }}
+        fstype: "{{ boot_fs }}"
+        dump: "1"
+        passno: "2"
+        fstab: /etc/fstab.new
+        state: present
 
     - name: Create var dir
       file:
@@ -381,10 +378,28 @@
     #     fstab: /etc/fstab.fake
     #     state: mounted
     #
+    # - name: Mount binfmt_misc on newroot
+    #   mount:
+    #     path: /newroot/proc/sys/fs/binfmt_misc
+    #     src: /proc/sys/fs/binfmt_misc
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
+    #
     # - name: Mount dev on newroot
     #   mount:
     #     path: /newroot/dev
     #     src: /dev
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
+    #
+    # - name: Mount pts on newroot
+    #   mount:
+    #     path: /newroot/dev/pts
+    #     src: /dev/pts
     #     opts: bind
     #     fstype: none
     #     fstab: /etc/fstab.fake
@@ -398,7 +413,7 @@
     #     fstype: none
     #     fstab: /etc/fstab.fake
     #     state: mounted
-
+    #
     # - name: Mount run on newroot
     #   mount:
     #     path: /newroot/run/lvm
