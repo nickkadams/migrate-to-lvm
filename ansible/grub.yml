@@ -13,7 +13,12 @@
       when:
         - ansible_os_family == "RedHat"
 
-    - name: Update grub CMDLINE_LINUX for RedHat family
+    - name: Update grub for RedHat 6
+      command: grubby --update-kernel=0 --args=rd.lvm.lv={{ vg_name }}/root
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Update grub CMDLINE_LINUX for RedHat 7 or newer family
       lineinfile:
         state: present
         dest: /etc/default/grub
@@ -21,7 +26,7 @@
         regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
         line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
 
     - name: Update grub OS_PROBER for RedHat 8 family
       lineinfile:
@@ -42,10 +47,10 @@
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
 
-    - name: Generate grub config for RedHat family
+    - name: Generate grub config for RedHat 7 or newer family
       command: grub2-mkconfig -o /boot/grub2/grub.cfg
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
 
     - name: Generate initramfs for Debian family
       command: update-initramfs -u
@@ -70,21 +75,27 @@
     #   when:
     #     - ansible_os_family == "RedHat"
 
-    - name: Generate initramfs for RedHat family
-      command: dracut -f -H --regenerate-all
+    - name: Generate initramfs for RedHat 6 family
+      command: dracut -f -H
       #command: "dracut -f -H {{ found_file.stdout_lines[0] }}"
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
-    - name: Check grub for Debian family
+    - name: Generate initramfs for RedHat 7 or newer family
+      command: dracut -f -H --regenerate-all
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
+
+    - name: Check grub for Debian family or RedHat 6 family
       command: "grub-install --recheck {{ new_disk }}"
       when:
-        - ansible_os_family == "Debian"
+        - ansible_os_family == "Debian" or
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
-    - name: Check grub for RedHat family
+    - name: Check grub for RedHat 7 or newer family
       command: "grub2-install --recheck {{ new_disk }}"
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
 
     - name: Flush to disk
       command: "sync"
