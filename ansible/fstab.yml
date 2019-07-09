@@ -28,6 +28,13 @@
         passno: "2"
         state: present
 
+    - name: Update fstab for root
+      mount:
+        path: /
+        src: "/dev/mapper/{{ vg_name }}-root"
+        fstype: "{{ root_fs }}"
+        state: present
+
     - name: Update fstab for var
       mount:
         path: /var
