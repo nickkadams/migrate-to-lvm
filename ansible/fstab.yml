@@ -1,0 +1,80 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - "vars/main.yml"
+    #- "vars/{{ ansible_os_family }}.yml"
+
+  tasks:
+    - name: Empty out the current fstab
+      copy:
+        content: ""
+        dest: /etc/fstab
+        force: yes
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Find boot UUID for fstab
+      shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
+      register: found_uuid
+
+    - name: Update fstab for boot
+      mount:
+        path: /newroot/boot
+        src: UUID={{ found_uuid.stdout_lines[0] }}
+        fstype: "{{ boot_fs }}"
+        dump: "1"
+        passno: "2"
+        fstab: /etc/fstab.new
+        state: present
+
+    - name: Update fstab for var
+      mount:
+        path: /newroot/var
+        src: "/dev/mapper/{{ vg_name }}-var"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for log
+      mount:
+        path: /newroot/var/log
+        src: "/dev/mapper/{{ vg_name }}-log"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for audit
+      mount:
+        path: /newroot/var/log/audit
+        src: "/dev/mapper/{{ vg_name }}-audit"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for home
+      mount:
+        path: /newroot/home
+        src: "/dev/mapper/{{ vg_name }}-home"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for tmp
+      mount:
+        path: /newroot/tmp
+        src: "/dev/mapper/{{ vg_name }}-tmp"
+        fstype: "{{ root_fs }}"
+        opts: nodev,noexec,nosuid
+        state: present
+
+    - name: Update fstab for swap
+      mount:
+        path: swap
+        src: "/dev/mapper/{{ vg_name }}-swap"
+        fstype: swap
+        state: present
+      when: create_swap

@@ -2,51 +2,46 @@
 - hosts: localhost
   connection: local
   become: yes
-  gather_facts: yes
+  gather_facts: no
 
   tasks:
-  - name: Remove ansible code
-    file:
-      path: "{{ item }}"
-      state: absent
-    with_items:
-      - '/newroot/home/ansible/ansible/'
-
   - name: Umount all bind mounts
     mount:
       path: "{{ item }}"
       opts: bind
       state: unmounted
     with_items:
+      - '/newroot/proc/sys/fs/binfmt_misc'
       - '/newroot/proc'
+      - '/newroot/dev/pts'
       - '/newroot/dev'
       - '/newroot/sys'
-    ignore_errors: yes
+    #ignore_errors: yes
 
-  - name: Umount all temporary mounts
-    mount:
-      path: "{{ item }}"
-      state: unmounted
-    with_items:
-      - '/oldroot'
-      - '/newroot/home'
-      - '/newroot/tmp'
-      - '/newroot/var/log/audit'
-      - '/newroot/var/log'
-      - '/newroot/var'
-      - '/newroot/boot'
-      - '/newroot'
-    ignore_errors: yes
-
-  - name: Remove any temp files or directories
-    file:
-      path: "{{ item }}"
-      state: absent
-    with_items:
-      - '/etc/fstab.fake'
-      - '/etc/fstab.new'
-      # - '/newroot/newroot'
-      # - '/newroot/oldroot'
-      #- '/newroot'
-      #- '/oldroot'
-    ignore_errors: yes
+  # - name: Umount all temporary mounts
+  #   mount:
+  #     path: "{{ item }}"
+  #     state: unmounted
+  #   with_items:
+  #     - '/oldroot'
+  #     - '/newroot/home'
+  #     - '/newroot/tmp'
+  #     - '/newroot/var/log/audit'
+  #     - '/newroot/var/log'
+  #     - '/newroot/var'
+  #     - '/newroot/boot'
+  #     - '/newroot'
+  #   ignore_errors: yes
+  #
+  # - name: Remove any temp files or directories
+  #   file:
+  #     path: "{{ item }}"
+  #     state: absent
+  #   with_items:
+  #     - '/etc/fstab.fake'
+  #     - '/etc/fstab.new'
+  #     # - '/newroot/newroot'
+  #     # - '/newroot/oldroot'
+  #     #- '/newroot'
+  #     #- '/oldroot'
+  #   ignore_errors: yes

@@ -158,21 +158,24 @@
         state: directory
         mode: 0755
 
-    - name: Remove any temp fstab files
-      file:
-        path: "{{ item }}"
-        state: absent
-      with_items:
-        - '/etc/fstab.fake'
-        - '/etc/fstab.new'
+    # - name: Remove any temp fstab files
+    #   file:
+    #     path: "{{ item }}"
+    #     state: absent
+    #   with_items:
+    #     - '/etc/fstab.fake'
+    #     - '/etc/fstab.new'
+
+    # - name: Mount newroot dir
+    #   mount:
+    #     path: /newroot
+    #     src: "/dev/mapper/{{ vg_name }}-root"
+    #     fstype: "{{ root_fs }}"
+    #     fstab: /etc/fstab.new
+    #     state: mounted
 
     - name: Mount newroot dir
-      mount:
-        path: /newroot
-        src: "/dev/mapper/{{ vg_name }}-root"
-        fstype: "{{ root_fs }}"
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot"
 
     - name: Create boot dir
       file:
@@ -183,20 +186,6 @@
     - name: Mount boot dir
       command: "mount -t {{ boot_fs }} {{ new_disk }}{{ boot_part }} /newroot/boot"
 
-    - name: Find boot UUID for fstab
-      shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
-      register: found_uuid
-
-    - name: Update boot in fstab
-      mount:
-        path: /newroot/boot
-        src: UUID={{ found_uuid.stdout_lines[0] }}
-        fstype: "{{ boot_fs }}"
-        dump: "1"
-        passno: "2"
-        fstab: /etc/fstab.new
-        state: present
-
     - name: Create var dir
       file:
         path: /newroot/var
@@ -204,13 +193,7 @@
         mode: 0755
 
     - name: Mount var dir
-      mount:
-        path: /newroot/var
-        src: "/dev/mapper/{{ vg_name }}-var"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/var"
 
     - name: Create log dir
       file:
@@ -219,13 +202,7 @@
         mode: 0755
 
     - name: Mount log dir
-      mount:
-        path: /newroot/var/log
-        src: "/dev/mapper/{{ vg_name }}-log"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/var/log"
 
     - name: Create audit dir
       file:
@@ -234,13 +211,7 @@
         mode: 0755
 
     - name: Mount audit dir
-      mount:
-        path: /newroot/var/log/audit
-        src: "/dev/mapper/{{ vg_name }}-audit"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/var/log/audit"
 
     - name: Create home dir
       file:
@@ -249,13 +220,7 @@
         mode: 0755
 
     - name: Mount home dir
-      mount:
-        path: /newroot/home
-        src: "/dev/mapper/{{ vg_name }}-home"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/home"
 
     - name: Create tmp dir
       file:
@@ -264,22 +229,7 @@
         mode: 0755
 
     - name: Mount tmp dir
-      mount:
-        path: /newroot/tmp
-        src: "/dev/mapper/{{ vg_name }}-tmp"
-        fstype: "{{ root_fs }}"
-        opts: nodev,noexec,nosuid
-        fstab: /etc/fstab.new
-        state: mounted
-
-    - name: Add swap dir
-      mount:
-        path: swap
-        src: "/dev/mapper/{{ vg_name }}-swap"
-        fstype: swap
-        fstab: /etc/fstab.new
-        state: present
-      when: create_swap
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/tmp"
 
     # - name: Create oldroot dir
     #   file:
