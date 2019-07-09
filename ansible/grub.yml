@@ -8,7 +8,7 @@
   tasks:
     - name: Touch .autorelabel for SELinux
       file:
-        path: /newroot/.autorelabel
+        path: /.autorelabel
         state: touch
       when:
         - ansible_os_family == "RedHat"
