@@ -21,6 +21,7 @@
         device: "{{ new_disk }}"
         number: 1
         state: absent
+    #   when: packer_run
 
     - name: Ensure partition 2 is gone
       parted:
@@ -193,7 +194,7 @@
         mode: 0755
 
     - name: Mount var dir
-      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/var"
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-var /newroot/var"
 
     - name: Create log dir
       file:
@@ -202,7 +203,7 @@
         mode: 0755
 
     - name: Mount log dir
-      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/var/log"
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-log /newroot/var/log"
 
     - name: Create audit dir
       file:
@@ -211,7 +212,7 @@
         mode: 0755
 
     - name: Mount audit dir
-      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/var/log/audit"
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-audit /newroot/var/log/audit"
 
     - name: Create home dir
       file:
@@ -220,7 +221,7 @@
         mode: 0755
 
     - name: Mount home dir
-      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/home"
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-home /newroot/home"
 
     - name: Create tmp dir
       file:
@@ -229,4 +230,4 @@
         mode: 0755
 
     - name: Mount tmp dir
-      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot/tmp"
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-tmp /newroot/tmp"
