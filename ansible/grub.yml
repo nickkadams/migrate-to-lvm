@@ -2,9 +2,37 @@
 - hosts: chroot_instance
   connection: chroot
   user: root
+  vars_files:
+    - "vars/main.yml"
 
   tasks:
-    - name: Update grub for Debian family
+    - name: Touch .autorelabel for SELinux
+      file:
+        path: /newroot/.autorelabel
+        state: touch
+      when:
+        - ansible_os_family == "RedHat"
+
+    - name: Update grub CMDLINE_LINUX for RedHat family
+      lineinfile:
+        state: present
+        dest: /etc/default/grub
+        backrefs: yes
+        regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
+        line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
+      when:
+        - ansible_os_family == "RedHat"
+
+    - name: Update grub OS_PROBER for RedHat 8 family
+      lineinfile:
+        state: present
+        dest: /etc/default/grub
+        regexp: '^GRUB_DISABLE_OS_PROBER='
+        line: GRUB_DISABLE_OS_PROBER=true
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
+    - name: Generate grub config for Debian family
       command: grub-mkconfig -o /boot/grub/grub.cfg
       when:
         - ansible_os_family == "Debian"
@@ -14,12 +42,12 @@
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
 
-    - name: Update grub for RedHat family
+    - name: Generate grub config for RedHat family
       command: grub2-mkconfig -o /boot/grub2/grub.cfg
       when:
         - ansible_os_family == "RedHat"
 
-    - name: Update initramfs for Debian family
+    - name: Generate initramfs for Debian family
       command: update-initramfs -u
       when:
         - ansible_os_family == "Debian"
@@ -42,7 +70,7 @@
     #   when:
     #     - ansible_os_family == "RedHat"
 
-    - name: Update initramfs for RedHat family
+    - name: Generate initramfs for RedHat family
       command: dracut -f -H --regenerate-all
       #command: "dracut -f -H {{ found_file.stdout_lines[0] }}"
       when:
