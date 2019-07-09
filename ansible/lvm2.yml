@@ -41,10 +41,10 @@
         part_start: "{{ boot_size|int + 1 }}MB"
         part_end: 100%
 
-    - name: Create {{ vg_name }} volume group on top of {{ new_disk }}2
+    - name: Create {{ vg_name }} volume group on top of {{ new_disk }}{{ root_part }}
       lvg:
         vg: "{{ vg_name }}"
-        pvs: "{{ new_disk }}2"
+        pvs: "{{ new_disk }}{{ root_part }}"
         pesize: "4" # 32 or 128K
 
     - name: Create logical volume swap of {{ swap_size }}
@@ -90,10 +90,10 @@
         lv: root
         size: "{{ root_size }}"
 
-    - name: Create {{ boot_fs }} filesystem on {{ new_disk }}1
+    - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
       filesystem:
         fstype: "{{ boot_fs }}"
-        dev: "{{ new_disk }}1"
+        dev: "{{ new_disk }}{{ boot_part }}"
         #force: yes
 
     # - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
@@ -171,19 +171,30 @@
         state: directory
         mode: 0755
 
-    - name: Find boot UUID
-      shell: blkid -o value -s UUID {{ new_disk }}1
-      register: found_uuid
+    # - name: Find boot UUID
+    #   shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
+    #   register: found_uuid
+    #
+    # - name: Mount boot dir
+    #   mount:
+    #     path: /newroot/boot
+    #     src: UUID={{ found_uuid.stdout_lines[0] }}
+    #     fstype: "{{ boot_fs }}"
+    #     dump: 1
+    #     passno: 2
+    #     fstab: /etc/fstab.new
+    #     state: mounted
 
     - name: Mount boot dir
       mount:
         path: /newroot/boot
-        src: UUID={{ found_uuid.stdout_lines[0] }}
+        src: "{{ new_disk }}{{ boot_part }}"
         fstype: "{{ boot_fs }}"
         dump: 1
         passno: 2
         fstab: /etc/fstab.new
         state: mounted
+
 
     - name: Create var dir
       file:

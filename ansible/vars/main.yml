@@ -1,7 +1,10 @@
 ---
 #new_disk: /dev/sdb
+#new_disk: /dev/nvme1n1
 vg_name: rootvg
 boot_size: 512 # in MB
+boot_part: 1 # p1
+root_part: 2 # p2
 create_swap: true
 swap_size: 1g
 var_size: 10g
