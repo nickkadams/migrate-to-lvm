@@ -90,11 +90,14 @@
         lv: root
         size: "{{ root_size }}"
 
+    # - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
+    #   filesystem:
+    #     fstype: "{{ boot_fs }}"
+    #     dev: "{{ new_disk }}{{ boot_part }}"
+    #     #force: yes
+
     - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
-      filesystem:
-        fstype: "{{ boot_fs }}"
-        dev: "{{ new_disk }}{{ boot_part }}"
-        #force: yes
+      command: "mkfs.{{ boot_fs }}" {{ new_disk }}{{ boot_part }}"
 
     # - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
     #   filesystem:
@@ -172,12 +175,7 @@
         mode: 0755
 
     - name: Mount boot dir
-      mount:
-        path: /newroot/boot
-        src: "{{ new_disk }}{{ boot_part }}"
-        fstype: "{{ boot_fs }}"
-        fstab: /etc/fstab.fake
-        state: mounted
+      command: "mount -t {{ boot_fs }} {{ new_disk }}{{ boot_part }} /newroot/boot"
 
     - name: Find boot UUID for fstab
       shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
