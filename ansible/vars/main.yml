@@ -1,6 +1,7 @@
 ---
 #new_disk: /dev/sdb
 #new_disk: /dev/nvme1n1
+packer_run: false
 vg_name: rootvg
 boot_size: 512 # in MB
 boot_part: 1 # p1

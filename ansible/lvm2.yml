@@ -21,13 +21,7 @@
         device: "{{ new_disk }}"
         number: 1
         state: absent
-    #   when: packer_run
-
-    - name: Ensure partition 2 is gone
-      parted:
-        device: "{{ new_disk }}"
-        number: 2
-        state: absent
+      when: packer_run
 
     - name: Create a new boot partition
       parted:
@@ -248,4 +242,4 @@
     - name: Mount tmp dir
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-tmp /newroot/tmp"
       args:
-        warn: no      
+        warn: no
