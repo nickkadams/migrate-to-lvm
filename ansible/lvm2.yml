@@ -97,7 +97,7 @@
     #     #force: yes
 
     - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
-      command: "mkfs.{{ boot_fs }}" {{ new_disk }}{{ boot_part }}"
+      command: "mkfs.{{ boot_fs }} {{ new_disk }}{{ boot_part }}"
 
     # - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
     #   filesystem:
