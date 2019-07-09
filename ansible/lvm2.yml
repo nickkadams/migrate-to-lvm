@@ -16,10 +16,16 @@
           - rsync
           - parted
 
-    - name: Erase root partition for amazon-chroot
+    - name: Ensure partition 1 is gone
       parted:
         device: "{{ new_disk }}"
         number: 1
+        state: absent
+
+    - name: Ensure partition 2 is gone
+      parted:
+        device: "{{ new_disk }}"
+        number: 2
         state: absent
 
     - name: Create a new boot partition
@@ -366,7 +372,7 @@
     #     state: touch
     #   when:
     #     - ansible_os_family == "RedHat"
-    
+
     - name: Mount proc on newroot
       mount:
         path: /newroot/proc
