@@ -21,17 +21,16 @@
 
     - name: Update fstab for boot
       mount:
-        path: /newroot/boot
+        path: /boot
         src: UUID={{ found_uuid.stdout_lines[0] }}
         fstype: "{{ boot_fs }}"
         dump: "1"
         passno: "2"
-        fstab: /etc/fstab.new
         state: present
 
     - name: Update fstab for var
       mount:
-        path: /newroot/var
+        path: /var
         src: "/dev/mapper/{{ vg_name }}-var"
         fstype: "{{ root_fs }}"
         opts: nodev
@@ -39,7 +38,7 @@
 
     - name: Update fstab for log
       mount:
-        path: /newroot/var/log
+        path: /var/log
         src: "/dev/mapper/{{ vg_name }}-log"
         fstype: "{{ root_fs }}"
         opts: nodev
@@ -47,7 +46,7 @@
 
     - name: Update fstab for audit
       mount:
-        path: /newroot/var/log/audit
+        path: /var/log/audit
         src: "/dev/mapper/{{ vg_name }}-audit"
         fstype: "{{ root_fs }}"
         opts: nodev
@@ -55,7 +54,7 @@
 
     - name: Update fstab for home
       mount:
-        path: /newroot/home
+        path: /home
         src: "/dev/mapper/{{ vg_name }}-home"
         fstype: "{{ root_fs }}"
         opts: nodev
@@ -63,7 +62,7 @@
 
     - name: Update fstab for tmp
       mount:
-        path: /newroot/tmp
+        path: /tmp
         src: "/dev/mapper/{{ vg_name }}-tmp"
         fstype: "{{ root_fs }}"
         opts: nodev,noexec,nosuid

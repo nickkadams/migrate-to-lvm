@@ -89,8 +89,7 @@
     - name: Check grub for Debian family or RedHat 6 family
       command: "grub-install --recheck {{ new_disk }}"
       when:
-        - ansible_os_family == "Debian" or
-        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+        - ansible_os_family == "Debian" or ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
     - name: Check grub for RedHat 7 or newer family
       command: "grub2-install --recheck {{ new_disk }}"
