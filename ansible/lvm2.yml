@@ -16,6 +16,12 @@
           - rsync
           - parted
 
+    - name: Erase root partition for amazon-chroot
+      parted:
+        device: "{{ new_disk }}"
+        number: 1
+        state: absent
+
     - name: Create a new boot partition
       parted:
         device: "{{ new_disk }}"
@@ -263,120 +269,124 @@
         state: present
       when: create_swap
 
-    - name: Create oldroot dir
-      file:
-        path: /oldroot
-        state: directory
-        mode: 0755
-
-    - name: Mount oldroot
-      mount:
-        path: /oldroot
-        src: /
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    - name: Rsync /oldroot to /newroot for Debian family
-      synchronize:
-        src: /oldroot/
-        dest: /newroot/
-        archive: yes
-        rsync_opts:
-          - "--exclude=swapfile"
-          - "--exclude=/etc/fstab.*"
-          - "--exclude=/home/ansible/ansible"
-          - "--one-file-system"
-      when:
-        - ansible_os_family == "Debian"
-
-    - name: Rsync /oldroot to /newroot for RedHat family
-      synchronize:
-        src: /oldroot/
-        dest: /newroot/
-        archive: yes
-        rsync_opts:
-          - "-A"
-          - "-X"
-          - "--exclude=/etc/fstab.*"
-          - "--exclude=/home/ansible/ansible"
-          - "--one-file-system"
-      when:
-        - ansible_os_family == "RedHat"
-
-    - name: Update new /etc/fstab pass1
-      replace:
-        path: "/etc/fstab.new"
-        regexp: "newroot"
-
-    - name: Update new /etc/fstab pass2
-      replace:
-        path: "/etc/fstab.new"
-        regexp: "//"
-        replace: "/"
-
-    - name: Copy new /etc/fstab to newroot
-      copy:
-        src: /etc/fstab.new
-        dest: /newroot/etc/fstab
-        owner: root
-        group: root
-        mode: '0644'
-
-    - name: Edit default grub CMDLINE_LINUX for RedHat family
-      lineinfile:
-        state: present
-        dest: /newroot/etc/default/grub
-        backrefs: yes
-        regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
-        line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
-      when:
-        - ansible_os_family == "RedHat"
-
-    - name: Edit default grub OS_PROBER for RedHat 8 family
-      lineinfile:
-        state: present
-        dest: /newroot/etc/default/grub
-        path: /etc/selinux/config
-        regexp: '^GRUB_DISABLE_OS_PROBER='
-        line: GRUB_DISABLE_OS_PROBER=true
-      when:
-        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
-
-    - name: Touch .autorelabel for SELinux
-      file:
-        path: /newroot/.autorelabel
-        state: touch
-      when:
-        - ansible_os_family == "RedHat"
-
-    - name: Mount proc on newroot
-      mount:
-        path: /newroot/proc
-        src: /proc
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    - name: Mount dev on newroot
-      mount:
-        path: /newroot/dev
-        src: /dev
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    - name: Mount sys on newroot
-      mount:
-        path: /newroot/sys
-        src: /sys
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
+    # - name: Create oldroot dir
+    #   file:
+    #     path: /oldroot
+    #     state: directory
+    #     mode: 0755
+    #   when: not run_sync
+    #
+    # - name: Mount oldroot
+    #   mount:
+    #     path: /oldroot
+    #     src: /
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
+    #   when: not run_sync
+    #
+    # - name: Rsync /oldroot to /newroot for Debian family
+    #   synchronize:
+    #     src: /oldroot/
+    #     dest: /newroot/
+    #     archive: yes
+    #     rsync_opts:
+    #       - "--exclude=swapfile"
+    #       - "--exclude=/etc/fstab.*"
+    #       - "--exclude=/home/ansible/ansible"
+    #       - "--one-file-system"
+    #   when:
+    #     - ansible_os_family == "Debian"
+    #     - not run_sync
+    #
+    # - name: Rsync /oldroot to /newroot for RedHat family
+    #   synchronize:
+    #     src: /oldroot/
+    #     dest: /newroot/
+    #     archive: yes
+    #     rsync_opts:
+    #       - "-A"
+    #       - "-X"
+    #       - "--exclude=/etc/fstab.*"
+    #       - "--exclude=/home/ansible/ansible"
+    #       - "--one-file-system"
+    #   when:
+    #     - ansible_os_family == "RedHat"
+    #     - not run_sync
+    #
+    # - name: Update new /etc/fstab pass1
+    #   replace:
+    #     path: "/etc/fstab.new"
+    #     regexp: "newroot"
+    #
+    # - name: Update new /etc/fstab pass2
+    #   replace:
+    #     path: "/etc/fstab.new"
+    #     regexp: "//"
+    #     replace: "/"
+    #
+    # - name: Copy new /etc/fstab to newroot
+    #   copy:
+    #     src: /etc/fstab.new
+    #     dest: /newroot/etc/fstab
+    #     owner: root
+    #     group: root
+    #     mode: '0644'
+    #
+    # - name: Edit default grub CMDLINE_LINUX for RedHat family
+    #   lineinfile:
+    #     state: present
+    #     dest: /newroot/etc/default/grub
+    #     backrefs: yes
+    #     regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
+    #     line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
+    #   when:
+    #     - ansible_os_family == "RedHat"
+    #
+    # - name: Edit default grub OS_PROBER for RedHat 8 family
+    #   lineinfile:
+    #     state: present
+    #     dest: /newroot/etc/default/grub
+    #     path: /etc/selinux/config
+    #     regexp: '^GRUB_DISABLE_OS_PROBER='
+    #     line: GRUB_DISABLE_OS_PROBER=true
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+    #
+    # - name: Touch .autorelabel for SELinux
+    #   file:
+    #     path: /newroot/.autorelabel
+    #     state: touch
+    #   when:
+    #     - ansible_os_family == "RedHat"
+    #
+    # - name: Mount proc on newroot
+    #   mount:
+    #     path: /newroot/proc
+    #     src: /proc
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
+    #
+    # - name: Mount dev on newroot
+    #   mount:
+    #     path: /newroot/dev
+    #     src: /dev
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
+    #
+    # - name: Mount sys on newroot
+    #   mount:
+    #     path: /newroot/sys
+    #     src: /sys
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
 
     # - name: Mount run on newroot
     #   mount:
