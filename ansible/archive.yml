@@ -25,9 +25,15 @@
 
     - name: Mount proc on newroot
       command: mount --bind /proc /newroot/proc
+      args:
+        warn: no
 
     - name: Mount dev on newroot
       command: mount --bind /proc /newroot/dev
+      args:
+        warn: no
 
     - name: Mount sys on newroot
       command: mount --bind /proc /newroot/sys
+      args:
+        warn: no      

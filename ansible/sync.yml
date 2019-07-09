@@ -3,9 +3,9 @@
   connection: local
   become: yes
   gather_facts: yes
-  vars_files:
-    - "vars/main.yml"
-    - "vars/{{ ansible_os_family }}.yml"
+  # vars_files:
+  #   - "vars/main.yml"
+  #   - "vars/{{ ansible_os_family }}.yml"
 
   tasks:
     - name: Create oldroot dir
@@ -13,17 +13,20 @@
         path: /oldroot
         state: directory
         mode: 0755
-      when: run_rsync
+
+    # - name: Mount oldroot
+    #   mount:
+    #     path: /oldroot
+    #     src: /
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
 
     - name: Mount oldroot
-      mount:
-        path: /oldroot
-        src: /
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-      when: run_rsync
+      command: mount --bind / /oldroot
+      args:
+        warn: no
 
     - name: Rsync /oldroot to /newroot for Debian family
       synchronize:
@@ -37,7 +40,6 @@
           - "--one-file-system"
       when:
         - ansible_os_family == "Debian"
-        - run_rsync
 
     - name: Rsync /oldroot to /newroot for RedHat family
       synchronize:
@@ -52,7 +54,6 @@
           - "--one-file-system"
       when:
         - ansible_os_family == "RedHat"
-        - run_rsync
 
     # - name: Mount proc on newroot
     #   mount:
@@ -65,9 +66,15 @@
 
     - name: Mount proc on newroot
       command: mount --bind /proc /newroot/proc
+      args:
+        warn: no
 
     - name: Mount dev on newroot
       command: mount --bind /proc /newroot/dev
+      args:
+        warn: no
 
     - name: Mount sys on newroot
       command: mount --bind /proc /newroot/sys
+      args:
+        warn: no      

@@ -105,6 +105,8 @@
 
     - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
       command: "mkfs.{{ boot_fs }} {{ new_disk }}{{ boot_part }}"
+      args:
+        warn: no
 
     # - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
     #   filesystem:
@@ -115,6 +117,8 @@
 
     - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
       command: mkswap /dev/mapper/{{ vg_name }}-swap
+      args:
+        warn: no
       when: create_swap
 
     - name: Create {{ root_fs }} filesystem on /dev/mapper/{{ vg_name }}-var
@@ -177,6 +181,8 @@
 
     - name: Mount newroot dir
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot"
+      args:
+        warn: no
 
     - name: Create boot dir
       file:
@@ -186,6 +192,8 @@
 
     - name: Mount boot dir
       command: "mount -t {{ boot_fs }} {{ new_disk }}{{ boot_part }} /newroot/boot"
+      args:
+        warn: no
 
     - name: Create var dir
       file:
@@ -195,6 +203,8 @@
 
     - name: Mount var dir
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-var /newroot/var"
+      args:
+        warn: no
 
     - name: Create log dir
       file:
@@ -204,6 +214,8 @@
 
     - name: Mount log dir
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-log /newroot/var/log"
+      args:
+        warn: no
 
     - name: Create audit dir
       file:
@@ -213,6 +225,8 @@
 
     - name: Mount audit dir
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-audit /newroot/var/log/audit"
+      args:
+        warn: no
 
     - name: Create home dir
       file:
@@ -222,6 +236,8 @@
 
     - name: Mount home dir
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-home /newroot/home"
+      args:
+        warn: no
 
     - name: Create tmp dir
       file:
@@ -231,3 +247,5 @@
 
     - name: Mount tmp dir
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-tmp /newroot/tmp"
+      args:
+        warn: no      
