@@ -366,52 +366,52 @@
     #     state: touch
     #   when:
     #     - ansible_os_family == "RedHat"
-    #
-    # - name: Mount proc on newroot
-    #   mount:
-    #     path: /newroot/proc
-    #     src: /proc
-    #     opts: bind
-    #     fstype: none
-    #     fstab: /etc/fstab.fake
-    #     state: mounted
-    #
-    # - name: Mount binfmt_misc on newroot
-    #   mount:
-    #     path: /newroot/proc/sys/fs/binfmt_misc
-    #     src: /proc/sys/fs/binfmt_misc
-    #     opts: bind
-    #     fstype: none
-    #     fstab: /etc/fstab.fake
-    #     state: mounted
-    #
-    # - name: Mount dev on newroot
-    #   mount:
-    #     path: /newroot/dev
-    #     src: /dev
-    #     opts: bind
-    #     fstype: none
-    #     fstab: /etc/fstab.fake
-    #     state: mounted
-    #
-    # - name: Mount pts on newroot
-    #   mount:
-    #     path: /newroot/dev/pts
-    #     src: /dev/pts
-    #     opts: bind
-    #     fstype: none
-    #     fstab: /etc/fstab.fake
-    #     state: mounted
-    #
-    # - name: Mount sys on newroot
-    #   mount:
-    #     path: /newroot/sys
-    #     src: /sys
-    #     opts: bind
-    #     fstype: none
-    #     fstab: /etc/fstab.fake
-    #     state: mounted
-    #
+    
+    - name: Mount proc on newroot
+      mount:
+        path: /newroot/proc
+        src: /proc
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
+    - name: Mount binfmt_misc on newroot
+      mount:
+        path: /newroot/proc/sys/fs/binfmt_misc
+        src: /proc/sys/fs/binfmt_misc
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
+    - name: Mount dev on newroot
+      mount:
+        path: /newroot/dev
+        src: /dev
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
+    - name: Mount pts on newroot
+      mount:
+        path: /newroot/dev/pts
+        src: /dev/pts
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
+    - name: Mount sys on newroot
+      mount:
+        path: /newroot/sys
+        src: /sys
+        opts: bind
+        fstype: none
+        fstab: /etc/fstab.fake
+        state: mounted
+
     # - name: Mount run on newroot
     #   mount:
     #     path: /newroot/run/lvm
