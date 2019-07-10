@@ -4,6 +4,7 @@
   user: root
   vars_files:
     - "vars/main.yml"
+    - "vars/{{ ansible_os_family }}.yml"
 
   tasks:
     - name: Touch .autorelabel for SELinux
@@ -13,10 +14,36 @@
       when:
         - ansible_os_family == "RedHat"
 
-    - name: Update grub for RedHat 6
-      command: grubby --update-kernel=0 --args=rd.lvm.lv={{ vg_name }}/root
+    - name: Unmount boot on RedHat 6 family
+      command: umount /boot
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Mount new boot on RedHat 6 family
+      command: mount -t {{ new_disk }}{{ boot_part }} /boot
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Remove grub ro, root=, and rd_NO_LVM on RedHat 6 family
+      command: grubby --update-kernel=0 --remove-args='ro root= rd_NO_LVM'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Update grub for ro root= on RedHat 6 family
+      command: grubby --update-kernel=0 --args='ro root=/dev/mapper/{{ vg_name }}-root'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Update grub for LVM root on RedHat 6 family
+      command: grubby --update-kernel=0 --args=rd_LVM_LV={{ vg_name }}/root
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Update grub for LVM swap on RedHat 6 family
+      command: grubby --update-kernel=0 --args=rd_LVM_LV={{ vg_name }}/swap
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+        - create_swap
 
     - name: Update grub CMDLINE_LINUX for RedHat 7 or newer family
       lineinfile:
@@ -98,3 +125,8 @@
 
     - name: Flush to disk
       command: "sync"
+
+    # - name: Unmount new boot on RedHat 6 family
+    #   command: umount /boot
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"

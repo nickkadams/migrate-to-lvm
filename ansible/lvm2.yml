@@ -91,16 +91,16 @@
         lv: root
         size: "{{ root_size }}"
 
-    # - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
-    #   filesystem:
-    #     fstype: "{{ boot_fs }}"
-    #     dev: "{{ new_disk }}{{ boot_part }}"
-    #     #force: yes
-
     - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
-      command: "mkfs.{{ boot_fs }} {{ new_disk }}{{ boot_part }}"
-      args:
-        warn: no
+      filesystem:
+        fstype: "{{ boot_fs }}"
+        dev: "{{ new_disk }}{{ boot_part }}"
+        #force: yes
+
+    # - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
+    #   command: "mkfs.{{ boot_fs }} {{ new_disk }}{{ boot_part }}"
+    #   args:
+    #     warn: no
 
     # - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
     #   filesystem:
