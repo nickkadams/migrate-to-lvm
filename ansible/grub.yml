@@ -7,6 +7,15 @@
     - "vars/{{ ansible_os_family }}.yml"
 
   tasks:
+    - name: Set SELINUX=permissive for RedHat 6 family
+      lineinfile:
+        state: present
+        dest: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: SELINUX=permissive
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
     - name: Touch .autorelabel for SELinux
       file:
         path: /.autorelabel
@@ -20,22 +29,22 @@
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
       ignore_errors: yes
 
-    - name: Mount new boot on RedHat 6 family
+    - name: Mount boot on RedHat 6 family
       command: mount -t {{ boot_fs }} {{ new_disk }}{{ boot_part }} /boot
       args:
         warn: no
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
-    - name: Remove grub quiet on RedHat 6 family
-      command: grubby --update-kernel=0 --remove-args='quiet'
-      when:
-        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
-
-    - name: Remove grub splash on RedHat 6 family
-      command: grubby --update-kernel=0 --remove-args='splash'
-      when:
-        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+    # - name: Remove grub quiet on RedHat 6 family
+    #   command: grubby --update-kernel=0 --remove-args='quiet'
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+    #
+    # - name: Remove grub splash on RedHat 6 family
+    #   command: grubby --update-kernel=0 --remove-args='splash'
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
     - name: Remove grub rd_NO_LVM on RedHat 6 family
       command: grubby --update-kernel=0 --remove-args='rd_NO_LVM'
@@ -44,13 +53,6 @@
 
     - name: Update grub for ro root= on RedHat 6 family
       command: grubby --update-kernel=0 --args='ro root=/dev/mapper/{{ vg_name }}-root'
-      when:
-        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
-
-    - name: Remove grub /boot references on RedHat 6 family
-      command: sed -i 's/\/boot//g' /boot/grub/grub.conf
-      args:
-        warn: no
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
@@ -66,12 +68,19 @@
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
         - create_swap
 
+    - name: Remove grub /boot references on RedHat 6 family
+      command: sed -i 's/\/boot//g' /boot/grub/grub.conf
+      args:
+        warn: no
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
     # - name: Update grub /boot reference for RedHat 6 family
     #   lineinfile:
     #     state: absent
     #     dest: /boot/grub/grub.conf
-    #     regexp: '^GRUB_DISABLE_OS_PROBER='
-    #     line: GRUB_DISABLE_OS_PROBER=true
+    #     regexp: '^/boot/'
+    #     line: /
     #   when:
     #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
