@@ -53,6 +53,11 @@ Step 6 - Attach secondary volume as primary and power on.
 
 * Check vars/main.yml for additional override options
 
+AWS EC2:
+```
+ansible-playbook -i inventory --extra-vars='new_disk=/dev/xvdb' lvm2.yml
+```
+
 AWS EC2 with NVMe:
 ```
 ansible-playbook -i inventory --extra-vars='new_disk=/dev/nvme1n1' \

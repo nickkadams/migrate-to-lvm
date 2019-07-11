@@ -145,6 +145,7 @@
         fstype: "{{ root_fs }}"
         dev: "/dev/mapper/{{ vg_name }}-vtmp"
         #force: yes
+      when: cis_layout        
 
     - name: Create {{ root_fs }} filesystem on /dev/mapper/{{ vg_name }}-home
       filesystem:
