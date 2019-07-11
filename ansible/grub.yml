@@ -2,9 +2,120 @@
 - hosts: chroot_instance
   connection: chroot
   user: root
+  vars_files:
+    - "vars/main.yml"
+    - "vars/{{ ansible_os_family }}.yml"
 
   tasks:
-    - name: Update grub for Debian family
+    # - name: Set SELINUX=permissive for RedHat 6 family
+    #   lineinfile:
+    #     state: present
+    #     dest: /etc/selinux/config
+    #     regexp: '^SELINUX='
+    #     line: SELINUX=permissive
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Touch .autorelabel for SELinux
+      file:
+        path: /.autorelabel
+        state: touch
+      when:
+        - ansible_os_family == "RedHat"
+
+    - name: Unmount boot on RedHat 6 family
+      command: umount /boot
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+      ignore_errors: yes
+
+    - name: Mount boot on RedHat 6 family
+      command: mount -t {{ boot_fs }} {{ new_disk }}{{ boot_part }} /boot
+      args:
+        warn: no
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    # - name: Remove grub quiet on RedHat 6 family
+    #   command: grubby --update-kernel=0 --remove-args='quiet'
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+    #
+    # - name: Remove grub splash on RedHat 6 family
+    #   command: grubby --update-kernel=0 --remove-args='splash'
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Remove grub rd_NO_LVM on RedHat 6 family
+      command: grubby --update-kernel=0 --remove-args='rd_NO_LVM'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Update grub for ro root= on RedHat 6 family
+      command: grubby --update-kernel=0 --args='ro root=/dev/mapper/{{ vg_name }}-root'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Update grub for LVM root on RedHat 6 family
+      command: grubby --update-kernel=0 --args='rd_LVM_LV={{ vg_name }}/root'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+        - not create_swap
+
+    - name: Update grub for LVM root and LVM swap on RedHat 6 family
+      command: grubby --update-kernel=0 --args='rd_LVM_LV={{ vg_name }}/root rd_LVM_LV={{ vg_name }}/swap'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+        - create_swap
+
+    - name: Remove grub /boot references on RedHat 6 family
+      command: sed -i 's/\/boot//g' /boot/grub/grub.conf
+      args:
+        warn: no
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    # - name: Update grub /boot reference for RedHat 6 family
+    #   lineinfile:
+    #     state: absent
+    #     dest: /boot/grub/grub.conf
+    #     regexp: '^/boot/'
+    #     line: /
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+
+    - name: Update grub CMDLINE_LINUX for LVM root RedHat 7 or newer family
+      lineinfile:
+        state: present
+        dest: /etc/default/grub
+        backrefs: yes
+        regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
+        line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
+        - not create_swap
+
+    - name: Update grub CMDLINE_LINUX for LVM root and LVM swap RedHat 7 or newer family
+      lineinfile:
+        state: present
+        dest: /etc/default/grub
+        backrefs: yes
+        regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
+        line: '\1 rd.lvm.lv={{ vg_name }}/root rd.lvm.lv={{ vg_name }}/swap\2'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
+        - create_swap        
+
+    - name: Update grub OS_PROBER for RedHat 8 family
+      lineinfile:
+        state: present
+        dest: /etc/default/grub
+        regexp: '^GRUB_DISABLE_OS_PROBER='
+        line: GRUB_DISABLE_OS_PROBER=true
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+
+    - name: Generate grub config for Debian family
       command: grub-mkconfig -o /boot/grub/grub.cfg
       when:
         - ansible_os_family == "Debian"
@@ -14,12 +125,12 @@
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
 
-    - name: Update grub for RedHat family
+    - name: Generate grub config for RedHat 7 or newer family
       command: grub2-mkconfig -o /boot/grub2/grub.cfg
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
 
-    - name: Update initramfs for Debian family
+    - name: Generate initramfs for Debian family
       command: update-initramfs -u
       when:
         - ansible_os_family == "Debian"
@@ -42,21 +153,38 @@
     #   when:
     #     - ansible_os_family == "RedHat"
 
-    - name: Update initramfs for RedHat family
-      command: dracut -f -H --regenerate-all
-      #command: "dracut -f -H {{ found_file.stdout_lines[0] }}"
+    - name: Generate initramfs for RedHat 6 family
+      #command: dracut -f /boot/initramfs-`uname -r`.img `uname -r`
+      command: dracut -f
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
-    - name: Check grub for Debian family
+    - name: Generate initramfs for RedHat 7 or newer family
+      command: dracut -f -H --regenerate-all
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
+
+    - name: Check grub for Debian family or RedHat 6 family
       command: "grub-install --recheck {{ new_disk }}"
       when:
-        - ansible_os_family == "Debian"
+        - ansible_os_family == "Debian" or ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
-    - name: Check grub for RedHat family
+    - name: Check grub for RedHat 7 or newer family
       command: "grub2-install --recheck {{ new_disk }}"
       when:
-        - ansible_os_family == "RedHat"
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
+
+    # - name: Reinstall kernel on RedHat 6 family
+    #   command: yum reinstall -y kernel
+    #   args:
+    #     warn: no
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
     - name: Flush to disk
       command: "sync"
+
+    # - name: Unmount new boot on RedHat 6 family
+    #   command: umount /boot
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"

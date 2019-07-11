@@ -1,3 +1,2 @@
 ---
-boot_fs: ext4
 root_fs: ext4

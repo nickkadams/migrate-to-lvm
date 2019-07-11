@@ -1,0 +1,77 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Create oldroot dir
+      file:
+        path: /oldroot
+        state: directory
+        mode: 0755
+
+    # - name: Mount oldroot
+    #   mount:
+    #     path: /oldroot
+    #     src: /
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
+
+    - name: Mount oldroot
+      command: mount --bind / /oldroot
+      args:
+        warn: no
+
+    - name: Rsync /oldroot to /newroot for Debian family
+      synchronize:
+        src: /oldroot/
+        dest: /newroot/
+        archive: yes
+        rsync_opts:
+          - "--exclude=swapfile"
+          - "--exclude=/etc/fstab.*"
+          - "--exclude=/home/ansible/ansible"
+          - "--one-file-system"
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Rsync /oldroot to /newroot for RedHat family
+      synchronize:
+        src: /oldroot/
+        dest: /newroot/
+        archive: yes
+        rsync_opts:
+          - "-A"
+          - "-X"
+          - "--exclude=/etc/fstab.*"
+          - "--exclude=/home/ansible/ansible"
+          - "--one-file-system"
+      when:
+        - ansible_os_family == "RedHat"
+
+    # - name: Mount proc on newroot
+    #   mount:
+    #     path: /newroot/proc
+    #     src: /proc
+    #     opts: bind
+    #     fstype: none
+    #     fstab: /etc/fstab.fake
+    #     state: mounted
+
+    - name: Mount dev on newroot
+      command: mount --bind /dev /newroot/dev
+      args:
+        warn: no
+
+    - name: Mount sys on newroot
+      command: mount --bind /sys /newroot/sys
+      args:
+        warn: no
+
+    - name: Mount proc on newroot
+      command: mount --bind /proc /newroot/proc
+      args:
+        warn: no

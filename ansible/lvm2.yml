@@ -21,12 +21,7 @@
         device: "{{ new_disk }}"
         number: 1
         state: absent
-
-    - name: Ensure partition 2 is gone
-      parted:
-        device: "{{ new_disk }}"
-        number: 2
-        state: absent
+      when: packer_run
 
     - name: Create a new boot partition
       parted:
@@ -51,7 +46,7 @@
       lvg:
         vg: "{{ vg_name }}"
         pvs: "{{ new_disk }}{{ root_part }}"
-        pesize: "4" # 32 or 128K
+        pesize: "{{ pe_size }}"
 
     - name: Create logical volume swap of {{ swap_size }}
       lvol:
@@ -78,6 +73,13 @@
         lv: audit
         size: "{{ audit_size }}"
 
+    - name: Create logical volume vtmp of {{ tmp_size }} for CIS
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: vtmp
+        size: "{{ vtmp_size }}"
+      when: cis_layout
+
     - name: Create logical volume home of {{ home_size }}
       lvol:
         vg: "{{ vg_name }}"
@@ -96,14 +98,16 @@
         lv: root
         size: "{{ root_size }}"
 
-    # - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
-    #   filesystem:
-    #     fstype: "{{ boot_fs }}"
-    #     dev: "{{ new_disk }}{{ boot_part }}"
-    #     #force: yes
-
     - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
-      command: "mkfs.{{ boot_fs }} {{ new_disk }}{{ boot_part }}"
+      filesystem:
+        fstype: "{{ boot_fs }}"
+        dev: "{{ new_disk }}{{ boot_part }}"
+        #force: yes
+
+    # - name: Create {{ boot_fs }} filesystem on {{ new_disk }}{{ boot_part }}
+    #   command: "mkfs.{{ boot_fs }} {{ new_disk }}{{ boot_part }}"
+    #   args:
+    #     warn: no
 
     # - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
     #   filesystem:
@@ -114,6 +118,8 @@
 
     - name: Create swap filesystem on /dev/mapper/{{ vg_name }}-swap
       command: mkswap /dev/mapper/{{ vg_name }}-swap
+      args:
+        warn: no
       when: create_swap
 
     - name: Create {{ root_fs }} filesystem on /dev/mapper/{{ vg_name }}-var
@@ -132,6 +138,12 @@
       filesystem:
         fstype: "{{ root_fs }}"
         dev: "/dev/mapper/{{ vg_name }}-audit"
+        #force: yes
+
+    - name: Create {{ root_fs }} filesystem on /dev/mapper/{{ vg_name }}-vtmp
+      filesystem:
+        fstype: "{{ root_fs }}"
+        dev: "/dev/mapper/{{ vg_name }}-vtmp"
         #force: yes
 
     - name: Create {{ root_fs }} filesystem on /dev/mapper/{{ vg_name }}-home
@@ -158,21 +170,26 @@
         state: directory
         mode: 0755
 
-    - name: Remove any temp fstab files
-      file:
-        path: "{{ item }}"
-        state: absent
-      with_items:
-        - '/etc/fstab.fake'
-        - '/etc/fstab.new'
+    # - name: Remove any temp fstab files
+    #   file:
+    #     path: "{{ item }}"
+    #     state: absent
+    #   with_items:
+    #     - '/etc/fstab.fake'
+    #     - '/etc/fstab.new'
+
+    # - name: Mount newroot dir
+    #   mount:
+    #     path: /newroot
+    #     src: "/dev/mapper/{{ vg_name }}-root"
+    #     fstype: "{{ root_fs }}"
+    #     fstab: /etc/fstab.new
+    #     state: mounted
 
     - name: Mount newroot dir
-      mount:
-        path: /newroot
-        src: "/dev/mapper/{{ vg_name }}-root"
-        fstype: "{{ root_fs }}"
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-root /newroot"
+      args:
+        warn: no
 
     - name: Create boot dir
       file:
@@ -182,20 +199,8 @@
 
     - name: Mount boot dir
       command: "mount -t {{ boot_fs }} {{ new_disk }}{{ boot_part }} /newroot/boot"
-
-    - name: Find boot UUID for fstab
-      shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
-      register: found_uuid
-
-    - name: Update boot in fstab
-      mount:
-        path: /newroot/boot
-        src: UUID={{ found_uuid.stdout_lines[0] }}
-        fstype: "{{ boot_fs }}"
-        dump: "1"
-        passno: "2"
-        fstab: /etc/fstab.new
-        state: present
+      args:
+        warn: no
 
     - name: Create var dir
       file:
@@ -204,13 +209,9 @@
         mode: 0755
 
     - name: Mount var dir
-      mount:
-        path: /newroot/var
-        src: "/dev/mapper/{{ vg_name }}-var"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-var /newroot/var"
+      args:
+        warn: no
 
     - name: Create log dir
       file:
@@ -219,13 +220,9 @@
         mode: 0755
 
     - name: Mount log dir
-      mount:
-        path: /newroot/var/log
-        src: "/dev/mapper/{{ vg_name }}-log"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-log /newroot/var/log"
+      args:
+        warn: no
 
     - name: Create audit dir
       file:
@@ -234,13 +231,22 @@
         mode: 0755
 
     - name: Mount audit dir
-      mount:
-        path: /newroot/var/log/audit
-        src: "/dev/mapper/{{ vg_name }}-audit"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-audit /newroot/var/log/audit"
+      args:
+        warn: no
+
+    - name: Create tmp dir for CIS
+      file:
+        path: /newroot/var/tmp
+        state: directory
+        mode: 0755
+      when: cis_layout
+
+    - name: Mount vtmp dir for CIS
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-vtmp /newroot/var/tmp"
+      args:
+        warn: no
+      when: cis_layout
 
     - name: Create home dir
       file:
@@ -249,13 +255,9 @@
         mode: 0755
 
     - name: Mount home dir
-      mount:
-        path: /newroot/home
-        src: "/dev/mapper/{{ vg_name }}-home"
-        fstype: "{{ root_fs }}"
-        opts: nodev
-        fstab: /etc/fstab.new
-        state: mounted
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-home /newroot/home"
+      args:
+        warn: no
 
     - name: Create tmp dir
       file:
@@ -264,167 +266,6 @@
         mode: 0755
 
     - name: Mount tmp dir
-      mount:
-        path: /newroot/tmp
-        src: "/dev/mapper/{{ vg_name }}-tmp"
-        fstype: "{{ root_fs }}"
-        opts: nodev,noexec,nosuid
-        fstab: /etc/fstab.new
-        state: mounted
-
-    - name: Add swap dir
-      mount:
-        path: swap
-        src: "/dev/mapper/{{ vg_name }}-swap"
-        fstype: swap
-        fstab: /etc/fstab.new
-        state: present
-      when: create_swap
-
-    # - name: Create oldroot dir
-    #   file:
-    #     path: /oldroot
-    #     state: directory
-    #     mode: 0755
-    #   when: not run_sync
-    #
-    # - name: Mount oldroot
-    #   mount:
-    #     path: /oldroot
-    #     src: /
-    #     opts: bind
-    #     fstype: none
-    #     fstab: /etc/fstab.fake
-    #     state: mounted
-    #   when: not run_sync
-    #
-    # - name: Rsync /oldroot to /newroot for Debian family
-    #   synchronize:
-    #     src: /oldroot/
-    #     dest: /newroot/
-    #     archive: yes
-    #     rsync_opts:
-    #       - "--exclude=swapfile"
-    #       - "--exclude=/etc/fstab.*"
-    #       - "--exclude=/home/ansible/ansible"
-    #       - "--one-file-system"
-    #   when:
-    #     - ansible_os_family == "Debian"
-    #     - not run_sync
-    #
-    # - name: Rsync /oldroot to /newroot for RedHat family
-    #   synchronize:
-    #     src: /oldroot/
-    #     dest: /newroot/
-    #     archive: yes
-    #     rsync_opts:
-    #       - "-A"
-    #       - "-X"
-    #       - "--exclude=/etc/fstab.*"
-    #       - "--exclude=/home/ansible/ansible"
-    #       - "--one-file-system"
-    #   when:
-    #     - ansible_os_family == "RedHat"
-    #     - not run_sync
-    #
-    # - name: Update new /etc/fstab pass1
-    #   replace:
-    #     path: "/etc/fstab.new"
-    #     regexp: "newroot"
-    #
-    # - name: Update new /etc/fstab pass2
-    #   replace:
-    #     path: "/etc/fstab.new"
-    #     regexp: "//"
-    #     replace: "/"
-    #
-    # - name: Copy new /etc/fstab to newroot
-    #   copy:
-    #     src: /etc/fstab.new
-    #     dest: /newroot/etc/fstab
-    #     owner: root
-    #     group: root
-    #     mode: '0644'
-    #
-    # - name: Edit default grub CMDLINE_LINUX for RedHat family
-    #   lineinfile:
-    #     state: present
-    #     dest: /newroot/etc/default/grub
-    #     backrefs: yes
-    #     regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
-    #     line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
-    #   when:
-    #     - ansible_os_family == "RedHat"
-    #
-    # - name: Edit default grub OS_PROBER for RedHat 8 family
-    #   lineinfile:
-    #     state: present
-    #     dest: /newroot/etc/default/grub
-    #     path: /etc/selinux/config
-    #     regexp: '^GRUB_DISABLE_OS_PROBER='
-    #     line: GRUB_DISABLE_OS_PROBER=true
-    #   when:
-    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
-    #
-    # - name: Touch .autorelabel for SELinux
-    #   file:
-    #     path: /newroot/.autorelabel
-    #     state: touch
-    #   when:
-    #     - ansible_os_family == "RedHat"
-
-    - name: Mount proc on newroot
-      mount:
-        path: /newroot/proc
-        src: /proc
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    - name: Mount binfmt_misc on newroot
-      mount:
-        path: /newroot/proc/sys/fs/binfmt_misc
-        src: /proc/sys/fs/binfmt_misc
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    - name: Mount dev on newroot
-      mount:
-        path: /newroot/dev
-        src: /dev
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    - name: Mount pts on newroot
-      mount:
-        path: /newroot/dev/pts
-        src: /dev/pts
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    - name: Mount sys on newroot
-      mount:
-        path: /newroot/sys
-        src: /sys
-        opts: bind
-        fstype: none
-        fstab: /etc/fstab.fake
-        state: mounted
-
-    # - name: Mount run on newroot
-    #   mount:
-    #     path: /newroot/run/lvm
-    #     src: /run/lvm
-    #     opts: bind
-    #     fstype: none
-    #     fstab: /etc/fstab.fake
-    #     state: mounted
-    #   when:
-    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "8"
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-tmp /newroot/tmp"
+      args:
+        warn: no

@@ -1,0 +1,39 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: yes
+  # vars_files:
+  #   - "vars/main.yml"
+  #   - "vars/{{ ansible_os_family }}.yml"
+
+  tasks:
+    - name: Backup files and directories
+      archive:
+        path:
+        - /newroot/*
+        dest: /amazon-chroot.gz
+        exclude_path:
+        - /amazon-chroot.gz
+        - /sys/*
+        - /dev/*
+        - /sys/*
+        - /var/run/portreserve/socket
+        - /var/run/acpid.socket
+        - /var/run/dbus/system_bus_socket
+        format: gz
+
+    - name: Mount proc on newroot
+      command: mount --bind /proc /newroot/proc
+      args:
+        warn: no
+
+    - name: Mount dev on newroot
+      command: mount --bind /proc /newroot/dev
+      args:
+        warn: no
+
+    - name: Mount sys on newroot
+      command: mount --bind /proc /newroot/sys
+      args:
+        warn: no

@@ -1,0 +1,94 @@
+---
+- hosts: chroot_instance
+  connection: chroot
+  user: root
+  vars_files:
+    - "vars/main.yml"
+    - "vars/{{ ansible_os_family }}.yml"
+
+  tasks:
+    - name: Empty current fstab
+      copy:
+        content: ""
+        dest: /etc/fstab
+        force: yes
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Find boot UUID for fstab
+      shell: blkid -o value -s UUID {{ new_disk }}{{ boot_part }}
+      register: found_uuid
+
+    - name: Update fstab for boot
+      mount:
+        path: /boot
+        src: UUID={{ found_uuid.stdout_lines[0] }}
+        fstype: "{{ boot_fs }}"
+        dump: "1"
+        passno: "2"
+        state: present
+
+    - name: Update fstab for root
+      mount:
+        path: /
+        src: "/dev/mapper/{{ vg_name }}-root"
+        fstype: "{{ root_fs }}"
+        state: present
+
+    - name: Update fstab for var
+      mount:
+        path: /var
+        src: "/dev/mapper/{{ vg_name }}-var"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for log
+      mount:
+        path: /var/log
+        src: "/dev/mapper/{{ vg_name }}-log"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for audit
+      mount:
+        path: /var/log/audit
+        src: "/dev/mapper/{{ vg_name }}-audit"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for vtmp for CIS
+      mount:
+        path: /tmp
+        src: "/dev/mapper/{{ vg_name }}-vtmp"
+        fstype: "{{ root_fs }}"
+        opts: nodev,noexec,nosuid
+        state: present
+      when: cis_layout
+
+    - name: Update fstab for home
+      mount:
+        path: /home
+        src: "/dev/mapper/{{ vg_name }}-home"
+        fstype: "{{ root_fs }}"
+        opts: nodev
+        state: present
+
+    - name: Update fstab for tmp
+      mount:
+        path: /tmp
+        src: "/dev/mapper/{{ vg_name }}-tmp"
+        fstype: "{{ root_fs }}"
+        opts: nodev,noexec,nosuid
+        state: present
+
+    - name: Update fstab for swap
+      mount:
+        path: swap
+        src: "/dev/mapper/{{ vg_name }}-swap"
+        fstype: swap
+        state: present
+      when: create_swap

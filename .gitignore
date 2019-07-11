@@ -6,3 +6,6 @@ playbook.retry
 
 # Notes
 notes.txt
+
+# Testing
+ansible.tgz
