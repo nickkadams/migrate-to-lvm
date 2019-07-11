@@ -60,7 +60,7 @@
         opts: nodev
         state: present
 
-    - name: Update fstab for vtmp for CIS 
+    - name: Update fstab for vtmp for CIS
       mount:
         path: /tmp
         src: "/dev/mapper/{{ vg_name }}-vtmp"
