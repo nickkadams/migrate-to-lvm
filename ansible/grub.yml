@@ -7,14 +7,14 @@
     - "vars/{{ ansible_os_family }}.yml"
 
   tasks:
-    - name: Set SELINUX=permissive for RedHat 6 family
-      lineinfile:
-        state: present
-        dest: /etc/selinux/config
-        regexp: '^SELINUX='
-        line: SELINUX=permissive
-      when:
-        - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
+    # - name: Set SELINUX=permissive for RedHat 6 family
+    #   lineinfile:
+    #     state: present
+    #     dest: /etc/selinux/config
+    #     regexp: '^SELINUX='
+    #     line: SELINUX=permissive
+    #   when:
+    #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
     - name: Touch .autorelabel for SELinux
       file:
@@ -142,9 +142,8 @@
     #     - ansible_os_family == "RedHat"
 
     - name: Generate initramfs for RedHat 6 family
-      command: dracut -f /boot/initramfs-`uname -r`.img `uname -r`
-      #command: dracut -f -H --add-drivers lvm
-      #command: mkinitrd -v /boot/initrd-`uname -r`.lvm.img `uname -r`
+      #command: dracut -f /boot/initramfs-`uname -r`.img `uname -r`
+      command: dracut -f
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
