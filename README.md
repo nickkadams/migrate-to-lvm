@@ -46,6 +46,7 @@ sudo ansible-playbook -i inventory --extra-vars='new_disk=/dev/sdb' grub.yml
 
 Step 5 - Power off instance and detach original volume.
 
+
 Step 6 - Attach secondary volume as primary and power on.
 
 ## Variable Override Examples
@@ -54,7 +55,8 @@ Step 6 - Attach secondary volume as primary and power on.
 
 AWS EC2 with NVMe:
 ```
-ansible-playbook -i inventory --extra-vars='new_disk=/dev/nvme1n1' --extra-vars='boot_part=p1' --extra-vars='root_part=p2' lvm2.yml
+ansible-playbook -i inventory --extra-vars='new_disk=/dev/nvme1n1' \
+--extra-vars='boot_part=p1' --extra-vars='root_part=p2' lvm2.yml
 ```
 
 CentOS/RHEL 6 - ext4 vs default xfs for root:
@@ -69,7 +71,8 @@ ansible-playbook -i inventory --extra-vars='new_disk=/dev/sdb' --extra-vars='boo
 
 Skip swap created on LVM:
 ```
-sudo ansible-playbook -i inventory --extra-vars='new_disk=/dev/sdb' --extra-vars='create_swap=false' grub.yml
+sudo ansible-playbook -i inventory --extra-vars='new_disk=/dev/sdb' \
+--extra-vars='create_swap=false' grub.yml
 ```
 
 CIS disk layout to add /var/tmp:
