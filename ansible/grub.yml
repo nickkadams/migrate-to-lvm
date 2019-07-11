@@ -84,7 +84,7 @@
     #   when:
     #     - ansible_os_family == "RedHat" and ansible_distribution_major_version == "6"
 
-    - name: Update grub CMDLINE_LINUX for RedHat 7 or newer family
+    - name: Update grub CMDLINE_LINUX for LVM root RedHat 7 or newer family
       lineinfile:
         state: present
         dest: /etc/default/grub
@@ -93,6 +93,18 @@
         line: '\1 rd.lvm.lv={{ vg_name }}/root\2'
       when:
         - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
+        - not create_swap
+
+    - name: Update grub CMDLINE_LINUX for LVM root and LVM swap RedHat 7 or newer family
+      lineinfile:
+        state: present
+        dest: /etc/default/grub
+        backrefs: yes
+        regexp: '^(GRUB_CMDLINE_LINUX=(?!.*rd\.lvm\.lv\=)\"[^\"]+)(\".*)'
+        line: '\1 rd.lvm.lv={{ vg_name }}/root rd.lvm.lv={{ vg_name }}/swap\2'
+      when:
+        - ansible_os_family == "RedHat" and ansible_distribution_major_version >= "7"
+        - create_swap        
 
     - name: Update grub OS_PROBER for RedHat 8 family
       lineinfile:

@@ -46,7 +46,7 @@
       lvg:
         vg: "{{ vg_name }}"
         pvs: "{{ new_disk }}{{ root_part }}"
-        pesize: "4" # 32 or 128K
+        pesize: "{{ pe_size }}"
 
     - name: Create logical volume swap of {{ swap_size }}
       lvol:
@@ -72,6 +72,13 @@
         vg: "{{ vg_name }}"
         lv: audit
         size: "{{ audit_size }}"
+
+    - name: Create logical volume vtmp of {{ tmp_size }} for CIS
+      lvol:
+        vg: "{{ vg_name }}"
+        lv: vtmp
+        size: "{{ vtmp_size }}"
+      when: cis_layout
 
     - name: Create logical volume home of {{ home_size }}
       lvol:
@@ -131,6 +138,12 @@
       filesystem:
         fstype: "{{ root_fs }}"
         dev: "/dev/mapper/{{ vg_name }}-audit"
+        #force: yes
+
+    - name: Create {{ root_fs }} filesystem on /dev/mapper/{{ vg_name }}-vtmp
+      filesystem:
+        fstype: "{{ root_fs }}"
+        dev: "/dev/mapper/{{ vg_name }}-vtmp"
         #force: yes
 
     - name: Create {{ root_fs }} filesystem on /dev/mapper/{{ vg_name }}-home
@@ -221,6 +234,19 @@
       command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-audit /newroot/var/log/audit"
       args:
         warn: no
+
+    - name: Create tmp dir for CIS
+      file:
+        path: /newroot/var/tmp
+        state: directory
+        mode: 0755
+      when: cis_layout
+
+    - name: Mount vtmp dir for CIS
+      command: "mount -t {{ root_fs }} /dev/mapper/{{ vg_name }}-vtmp /newroot/var/tmp"
+      args:
+        warn: no
+      when: cis_layout
 
     - name: Create home dir
       file:

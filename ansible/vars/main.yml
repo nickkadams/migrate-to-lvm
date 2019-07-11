@@ -2,7 +2,9 @@
 #new_disk: /dev/sdb
 #new_disk: /dev/nvme1n1
 packer_run: false
+cis_layout: false
 vg_name: rootvg
+pe_size: 4 # 32 or 128K
 boot_size: 512 # in MB
 boot_part: 1 # p1
 root_part: 2 # p2
@@ -14,4 +16,5 @@ log_size: 5g
 audit_size: 2g
 home_size: 5g
 tmp_size: 2g
+vtmp_size: 2g
 root_size: "+100%FREE"
