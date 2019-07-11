@@ -24,6 +24,11 @@ Examples:
 
 ## Migration Process
 
+Typical secondary disk notations:
+* AWS EC2: /dev/xvdb
+* AWS EC2 with NMVe: /dev/nvme1n1
+* VMware ESXi: /dev/sdb
+
 Step 1 - Create LVM layout:
 ```
 ansible-playbook -i inventory --extra-vars='new_disk=/dev/sdb' lvm2.yml
